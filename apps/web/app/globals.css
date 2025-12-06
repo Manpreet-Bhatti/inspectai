@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222.2 84% 4.9%);
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: hsl(222.2 84% 4.9%);
   --color-popover: hsl(0 0% 100%);
   --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(221.2 83.2% 53.3%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --color-primary: hsl(348 100% 86%);
+  --color-primary-foreground: hsl(348 40% 20%);
+  --color-secondary: hsl(29 53% 36%);
+  --color-secondary-foreground: hsl(0 0% 100%);
   --color-muted: hsl(210 40% 96.1%);
   --color-muted-foreground: hsl(215.4 16.3% 46.9%);
   --color-accent: hsl(210 40% 96.1%);
@@ -27,7 +29,6 @@
   --color-chart-4: hsl(43 74% 66%);
   --color-chart-5: hsl(27 87% 67%);
 
-  /* Dark mode colors */
   @media (prefers-color-scheme: dark) {
     --color-background: hsl(222.2 84% 4.9%);
     --color-foreground: hsl(210 40% 98%);
@@ -62,5 +63,14 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
   }
 }
