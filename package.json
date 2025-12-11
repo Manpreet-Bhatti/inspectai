@@ -15,6 +15,9 @@
         "db:generate": "pnpm --filter @inspectai/database db:generate",
         "db:studio": "pnpm --filter @inspectai/database db:studio",
         "db:migrate": "pnpm --filter @inspectai/database db:migrate",
+        "db:migrate:deploy": "pnpm --filter @inspectai/database db:migrate:deploy",
+        "db:seed": "pnpm --filter @inspectai/database db:seed",
+        "db:reset": "pnpm --filter @inspectai/database db:reset",
         "clean": "turbo clean && rm -rf node_modules"
     },
     "devDependencies": {
