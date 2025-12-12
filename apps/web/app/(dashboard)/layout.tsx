@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 import {
   Home,
   ClipboardList,
@@ -10,6 +13,12 @@ import {
 } from "lucide-react";
 
 function Sidebar() {
+  const { data: session } = useSession();
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/login" });
+  };
+
   return (
     <aside className="border-border bg-card hidden w-64 flex-shrink-0 border-r lg:block">
       <div className="flex h-full flex-col">
@@ -60,13 +69,17 @@ function Sidebar() {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-foreground truncate text-sm font-medium">
-                John Inspector
+                {session?.user?.name || "User"}
               </p>
               <p className="text-muted-foreground truncate text-xs">
-                john@example.com
+                {session?.user?.email || ""}
               </p>
             </div>
-            <button className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-1.5">
+            <button
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-1.5"
+              title="Sign out"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
@@ -77,6 +90,12 @@ function Sidebar() {
 }
 
 function Header() {
+  const { data: session } = useSession();
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/login" });
+  };
+
   return (
     <header className="border-border bg-card sticky top-0 z-40 flex h-16 items-center gap-4 border-b px-4 lg:px-6">
       {/* Mobile menu button */}
@@ -96,13 +115,22 @@ function Header() {
         {/* Notifications */}
         <button className="text-muted-foreground hover:bg-accent hover:text-accent-foreground relative rounded-lg p-2">
           <Bell className="h-5 w-5" />
-          <span className="bg-destructive absolute right-1.5 top-1.5 h-2 w-2 rounded-full" />
+          <span className="bg-destructive absolute top-1.5 right-1.5 h-2 w-2 rounded-full" />
         </button>
 
-        {/* User avatar (mobile) */}
-        <button className="bg-muted flex h-9 w-9 items-center justify-center rounded-full lg:hidden">
-          <User className="text-muted-foreground h-5 w-5" />
-        </button>
+        {/* User dropdown (mobile) */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <button className="bg-muted flex h-9 w-9 items-center justify-center rounded-full">
+            <User className="text-muted-foreground h-5 w-5" />
+          </button>
+          <button
+            onClick={handleSignOut}
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-1.5"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </header>
   );
