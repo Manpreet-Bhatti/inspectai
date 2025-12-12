@@ -1,20 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+interface ValidationError {
+  fieldErrors?: {
+    name?: string[];
+    email?: string[];
+    password?: string[];
+  };
+}
+
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    ValidationError["fieldErrors"]
+  >({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
 
+    // Client-side validation
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -26,9 +42,52 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-    // TODO: Implement actual registration
-    console.log("Register attempt:", { name, email });
-    setIsLoading(false);
+
+    try {
+      // Register the user
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 400 && data.details) {
+          setFieldErrors(data.details.fieldErrors);
+          setError("Please fix the errors below");
+        } else if (response.status === 409) {
+          setError(data.error || "An account with this email already exists");
+        } else {
+          setError(data.error || "Failed to create account");
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Auto sign in after successful registration
+      const signInResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        // Registration succeeded but sign in failed - redirect to login
+        router.push("/login?registered=true");
+        return;
+      }
+
+      // Redirect to dashboard
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("An error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,9 +125,14 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 placeholder="John Doe"
               />
+              {fieldErrors?.name && (
+                <p className="text-destructive mt-1 text-xs">
+                  {fieldErrors.name[0]}
+                </p>
+              )}
             </div>
 
             <div>
@@ -86,9 +150,14 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 placeholder="you@example.com"
               />
+              {fieldErrors?.email && (
+                <p className="text-destructive mt-1 text-xs">
+                  {fieldErrors.email[0]}
+                </p>
+              )}
             </div>
 
             <div>
@@ -106,9 +175,18 @@ export default function RegisterPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 placeholder="••••••••"
               />
+              {fieldErrors?.password && (
+                <p className="text-destructive mt-1 text-xs">
+                  {fieldErrors.password[0]}
+                </p>
+              )}
+              <p className="text-muted-foreground mt-1 text-xs">
+                Must be at least 8 characters with uppercase, lowercase, and
+                number
+              </p>
             </div>
 
             <div>
@@ -126,7 +204,7 @@ export default function RegisterPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 placeholder="••••••••"
               />
             </div>
@@ -164,7 +242,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary w-full rounded-md px-4 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary w-full rounded-md px-4 py-2 text-sm font-semibold shadow-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? "Creating account..." : "Create account"}
           </button>
