@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { SessionProvider } from "next-auth/react";
 import { QueryProvider } from "./QueryProvider";
 
 interface ProvidersProps {
@@ -13,13 +14,14 @@ interface ProvidersProps {
  */
 export function Providers({ children }: ProvidersProps) {
   return (
-    <QueryProvider>
-      {/* Add more providers here:
-          - SessionProvider for NextAuth
-          - ThemeProvider for dark mode
-          - ToastProvider for notifications
-      */}
-      {children}
-    </QueryProvider>
+    <SessionProvider>
+      <QueryProvider>
+        {/* Add more providers here:
+            - ThemeProvider for dark mode
+            - ToastProvider for notifications
+        */}
+        {children}
+      </QueryProvider>
+    </SessionProvider>
   );
 }

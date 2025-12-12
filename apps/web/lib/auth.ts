@@ -1,14 +1,41 @@
-import type { NextAuthConfig } from "next-auth";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-
-// TODO: Import prisma client for database authentication
-// import { prisma } from "@inspectai/database";
-// import { compare } from "bcryptjs";
+import { compare } from "bcryptjs";
+import { prisma } from "@inspectai/database";
+import type { Role } from "@/types";
 
 /**
- * NextAuth.js v5 configuration
+ * Get the current session on the server
  */
-export const authConfig: NextAuthConfig = {
+export async function getServerSession() {
+  return await auth();
+}
+
+/**
+ * Role-based access control helper
+ */
+export function hasRole(userRole: string, requiredRoles: string[]): boolean {
+  return requiredRoles.includes(userRole);
+}
+
+/**
+ * Check if user has admin privileges
+ */
+export function isAdmin(role: Role): boolean {
+  return role === "ADMIN";
+}
+
+/**
+ * Check if user has manager or admin privileges
+ */
+export function isManagerOrAdmin(role: Role): boolean {
+  return role === "ADMIN" || role === "MANAGER";
+}
+
+/**
+ * NextAuth.js v5 configuration for InspectAI
+ */
+export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       name: "credentials",
@@ -21,42 +48,34 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        // TODO: Replace with actual database authentication
-        // const user = await prisma.user.findUnique({
-        //   where: { email: credentials.email },
-        // });
+        const email = credentials.email as string;
+        const password = credentials.password as string;
 
-        // if (!user || !user.passwordHash) {
-        //   return null;
-        // }
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email },
+          });
 
-        // const isValid = await compare(credentials.password, user.passwordHash);
+          if (!user || !user.passwordHash) {
+            return null;
+          }
 
-        // if (!isValid) {
-        //   return null;
-        // }
+          const isValid = await compare(password, user.passwordHash);
 
-        // return {
-        //   id: user.id,
-        //   email: user.email,
-        //   name: user.name,
-        //   role: user.role,
-        // };
+          if (!isValid) {
+            return null;
+          }
 
-        // Demo authentication
-        if (
-          credentials.email === "demo@inspectai.com" &&
-          credentials.password === "demo123"
-        ) {
           return {
-            id: "1",
-            email: "demo@inspectai.com",
-            name: "Demo Inspector",
-            role: "INSPECTOR",
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
           };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
         }
-
-        return null;
       },
     }),
   ],
@@ -72,33 +91,36 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: string }).role;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string }).id =
-          token.id as string;
-        (session.user as { id?: string; role?: string }).role =
-          token.role as string;
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
       }
       return session;
     },
+    async authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnDashboard =
+        nextUrl.pathname.startsWith("/inspections") ||
+        nextUrl.pathname === "/" ||
+        nextUrl.pathname.startsWith("/settings");
+      const isOnAuth =
+        nextUrl.pathname.startsWith("/login") ||
+        nextUrl.pathname.startsWith("/register");
+
+      if (isOnDashboard) {
+        if (isLoggedIn) return true;
+        return false; // Redirect to login
+      } else if (isOnAuth) {
+        if (isLoggedIn) {
+          return Response.redirect(new URL("/", nextUrl));
+        }
+      }
+      return true;
+    },
   },
-};
-
-/**
- * Helper to check if user is authenticated on the server
- */
-export async function getServerSession() {
-  // TODO: Implement proper server-side session checking
-  return null;
-}
-
-/**
- * Role-based access control helper
- */
-export function hasRole(userRole: string, requiredRoles: string[]): boolean {
-  return requiredRoles.includes(userRole);
-}
+});
