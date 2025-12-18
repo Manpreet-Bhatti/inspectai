@@ -1,30 +1,33 @@
 import Link from "next/link";
-import { 
-  Camera, 
-  Mic, 
-  FileText, 
-  Sparkles, 
+import {
+  Camera,
+  Mic,
+  FileText,
+  Sparkles,
   ArrowRight,
   CheckCircle,
   Zap,
-  Shield
+  Shield,
 } from "lucide-react";
 
 const features = [
   {
     icon: Camera,
     title: "Photo Analysis",
-    description: "AI automatically identifies issues, damage, and conditions from your photos",
+    description:
+      "AI automatically identifies issues, damage, and conditions from your photos",
   },
   {
     icon: Mic,
     title: "Voice Notes",
-    description: "Record observations hands-free and get automatic transcriptions",
+    description:
+      "Record observations hands-free and get automatic transcriptions",
   },
   {
     icon: Sparkles,
     title: "Smart Findings",
-    description: "AI generates findings with severity ratings and cost estimates",
+    description:
+      "AI generates findings with severity ratings and cost estimates",
   },
   {
     icon: FileText,
@@ -42,27 +45,31 @@ const benefits = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       {/* Navigation */}
-      <nav className="border-b border-border">
+      <nav className="border-border border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">AI</span>
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <span className="text-primary-foreground text-sm font-bold">
+                  AI
+                </span>
               </div>
-              <span className="text-xl font-bold text-foreground">InspectAI</span>
+              <span className="text-foreground text-xl font-bold">
+                InspectAI
+              </span>
             </div>
             <div className="flex items-center gap-4">
               <Link
                 href="/login"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground text-sm font-medium"
               >
                 Sign in
               </Link>
               <Link
                 href="/register"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold"
               >
                 Get Started
               </Link>
@@ -73,29 +80,29 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 sm:py-32">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+        <div className="from-primary/5 absolute inset-0 -z-10 bg-linear-to-b via-transparent to-transparent" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
+            <h1 className="text-foreground text-4xl font-bold tracking-tight sm:text-6xl">
               AI-Powered Property
-              <span className="block text-primary">Inspection Reports</span>
+              <span className="text-primary block">Inspection Reports</span>
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground">
-              Transform photos and voice notes into comprehensive inspection reports 
-              with AI-identified issues, severity ratings, and cost estimates. 
-              Complete inspections in minutes, not hours.
+            <p className="text-muted-foreground mt-6 text-lg">
+              Transform photos and voice notes into comprehensive inspection
+              reports with AI-identified issues, severity ratings, and cost
+              estimates. Complete inspections in minutes, not hours.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-6 py-3 text-base font-semibold shadow-sm"
               >
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-6 py-3 text-base font-semibold text-foreground hover:bg-muted"
+                className="border-input bg-background text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-base font-semibold"
               >
                 View Demo
               </Link>
@@ -108,11 +115,12 @@ export default function LandingPage() {
       <section className="py-20 sm:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
               Everything you need for modern inspections
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Powerful AI tools that make property inspections faster and more accurate
+            <p className="text-muted-foreground mt-4 text-lg">
+              Powerful AI tools that make property inspections faster and more
+              accurate
             </p>
           </div>
 
@@ -120,15 +128,15 @@ export default function LandingPage() {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-xl border border-border bg-card p-6 shadow-sm"
+                className="border-border bg-card rounded-xl border p-6 shadow-sm"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <feature.icon className="h-6 w-6 text-primary" />
+                <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-lg">
+                  <feature.icon className="text-primary h-6 w-6" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-foreground">
+                <h3 className="text-foreground mt-4 text-lg font-semibold">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-sm">
                   {feature.description}
                 </p>
               </div>
@@ -142,17 +150,17 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              <h2 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
                 Work smarter, not harder
               </h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                InspectAI helps you complete more inspections with better accuracy, 
-                giving you more time to grow your business.
+              <p className="text-muted-foreground mt-4 text-lg">
+                InspectAI helps you complete more inspections with better
+                accuracy, giving you more time to grow your business.
               </p>
               <ul className="mt-8 space-y-4">
                 {benefits.map((benefit) => (
                   <li key={benefit} className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0 text-green-500" />
+                    <CheckCircle className="h-5 w-5 shrink-0 text-green-500" />
                     <span className="text-foreground">{benefit}</span>
                   </li>
                 ))}
@@ -160,25 +168,33 @@ export default function LandingPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="border-border bg-card rounded-xl border p-6">
                 <Zap className="h-8 w-8 text-amber-500" />
-                <p className="mt-4 text-3xl font-bold text-foreground">60%</p>
-                <p className="text-sm text-muted-foreground">Faster inspections</p>
+                <p className="text-foreground mt-4 text-3xl font-bold">60%</p>
+                <p className="text-muted-foreground text-sm">
+                  Faster inspections
+                </p>
               </div>
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="border-border bg-card rounded-xl border p-6">
                 <Shield className="h-8 w-8 text-green-500" />
-                <p className="mt-4 text-3xl font-bold text-foreground">99.2%</p>
-                <p className="text-sm text-muted-foreground">Issue detection rate</p>
+                <p className="text-foreground mt-4 text-3xl font-bold">99.2%</p>
+                <p className="text-muted-foreground text-sm">
+                  Issue detection rate
+                </p>
               </div>
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="border-border bg-card rounded-xl border p-6">
                 <FileText className="h-8 w-8 text-blue-500" />
-                <p className="mt-4 text-3xl font-bold text-foreground">10k+</p>
-                <p className="text-sm text-muted-foreground">Reports generated</p>
+                <p className="text-foreground mt-4 text-3xl font-bold">10k+</p>
+                <p className="text-muted-foreground text-sm">
+                  Reports generated
+                </p>
               </div>
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="border-border bg-card rounded-xl border p-6">
                 <Sparkles className="h-8 w-8 text-purple-500" />
-                <p className="mt-4 text-3xl font-bold text-foreground">500+</p>
-                <p className="text-sm text-muted-foreground">Active inspectors</p>
+                <p className="text-foreground mt-4 text-3xl font-bold">500+</p>
+                <p className="text-muted-foreground text-sm">
+                  Active inspectors
+                </p>
               </div>
             </div>
           </div>
@@ -188,18 +204,18 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-20 sm:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-primary px-6 py-16 text-center sm:px-16">
-            <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
+          <div className="bg-primary rounded-2xl px-6 py-16 text-center sm:px-16">
+            <h2 className="text-primary-foreground text-3xl font-bold tracking-tight sm:text-4xl">
               Ready to transform your inspections?
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-primary-foreground/80">
-              Join thousands of inspectors who are already saving time and delivering 
-              better reports with InspectAI.
+            <p className="text-primary-foreground/80 mx-auto mt-4 max-w-xl text-lg">
+              Join thousands of inspectors who are already saving time and
+              delivering better reports with InspectAI.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold text-primary shadow-sm hover:bg-white/90"
+                className="text-primary inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold shadow-sm hover:bg-white/90"
               >
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
@@ -210,16 +226,18 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12">
+      <footer className="border-border border-t py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
-                <span className="text-xs font-bold text-primary-foreground">AI</span>
+              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded">
+                <span className="text-primary-foreground text-xs font-bold">
+                  AI
+                </span>
               </div>
-              <span className="font-semibold text-foreground">InspectAI</span>
+              <span className="text-foreground font-semibold">InspectAI</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               © {new Date().getFullYear()} InspectAI. All rights reserved.
             </p>
           </div>

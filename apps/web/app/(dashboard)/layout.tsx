@@ -273,7 +273,7 @@ export default function DashboardLayout({
   return (
     <div className="bg-background flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="border-border bg-card hidden w-64 flex-shrink-0 border-r lg:block">
+      <aside className="border-border bg-card hidden w-64 shrink-0 border-r lg:block">
         <Sidebar />
       </aside>
 
