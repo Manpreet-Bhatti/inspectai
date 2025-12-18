@@ -65,3 +65,4 @@ packages/database/prisma/*.db-journal
 .vercel
 .netlify
 
+supabase/.temp
