@@ -13,6 +13,7 @@
     "dependencies": {
         "@inspectai/database": "workspace:*",
         "@inspectai/shared": "workspace:*",
+        "@supabase/supabase-js": "^2.88.0",
         "@tanstack/react-query": "^5.90.11",
         "@tanstack/react-query-devtools": "^5.90.11",
         "bcryptjs": "^3.0.3",
