@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   ClipboardList,
@@ -81,11 +81,11 @@ function NavLink({
 }
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { data: session } = useSession();
+  const { user, logout } = useAuth();
   const pathname = usePathname();
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: "/login" });
+    logout();
   };
 
   return (
@@ -133,19 +133,17 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             >
               <Avatar className="h-9 w-9">
                 <AvatarImage
-                  src={session?.user?.image || undefined}
-                  alt={session?.user?.name || "User"}
+                  src={user?.avatarUrl || undefined}
+                  alt={user?.name || "User"}
                 />
-                <AvatarFallback>
-                  {getInitials(session?.user?.name)}
-                </AvatarFallback>
+                <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-1 flex-col items-start overflow-hidden">
                 <span className="text-foreground truncate text-sm font-medium">
-                  {session?.user?.name || "User"}
+                  {user?.name || "User"}
                 </span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {session?.user?.email || ""}
+                  {user?.email || ""}
                 </span>
               </div>
               <ChevronsUpDown className="text-muted-foreground h-4 w-4" />
@@ -175,11 +173,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function Header() {
-  const { data: session } = useSession();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: "/login" });
+    logout();
   };
 
   return (
@@ -229,23 +227,19 @@ function Header() {
               <Button variant="ghost" size="icon">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={session?.user?.image || undefined}
-                    alt={session?.user?.name || "User"}
+                    src={user?.avatarUrl || undefined}
+                    alt={user?.name || "User"}
                   />
-                  <AvatarFallback>
-                    {getInitials(session?.user?.name)}
-                  </AvatarFallback>
+                  <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span className="font-medium">
-                    {session?.user?.name || "User"}
-                  </span>
+                  <span className="font-medium">{user?.name || "User"}</span>
                   <span className="text-muted-foreground text-xs font-normal">
-                    {session?.user?.email || ""}
+                    {user?.email || ""}
                   </span>
                 </div>
               </DropdownMenuLabel>
