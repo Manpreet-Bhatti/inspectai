@@ -41,8 +41,7 @@ function Sheet({ children, open, onOpenChange }: SheetProps) {
   );
 }
 
-interface SheetTriggerProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface SheetTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
 }
 
@@ -56,12 +55,21 @@ const SheetTrigger = React.forwardRef<HTMLButtonElement, SheetTriggerProps>(
     };
 
     if (asChild && React.isValidElement(children)) {
-      return React.cloneElement(children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
-        onClick: (e: React.MouseEvent) => {
-          (children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>).props.onClick?.(e);
-          onOpenChange(true);
-        },
-      });
+      return React.cloneElement(
+        children as React.ReactElement<{
+          onClick?: (e: React.MouseEvent) => void;
+        }>,
+        {
+          onClick: (e: React.MouseEvent) => {
+            (
+              children as React.ReactElement<{
+                onClick?: (e: React.MouseEvent) => void;
+              }>
+            ).props.onClick?.(e);
+            onOpenChange(true);
+          },
+        }
+      );
     }
 
     return (
@@ -117,14 +125,14 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
       <>
         {/* Backdrop */}
         <div
-          className="fixed inset-0 z-50 bg-black/80 animate-in fade-in-0"
+          className="animate-in fade-in-0 fixed inset-0 z-50 bg-black/80"
           onClick={() => onOpenChange(false)}
         />
         {/* Sheet */}
         <div
           ref={ref}
           className={cn(
-            "bg-background fixed z-50 gap-4 p-6 shadow-lg transition ease-in-out duration-300",
+            "bg-background fixed z-50 gap-4 p-6 shadow-lg transition duration-300 ease-in-out",
             sideStyles[side],
             slideStyles[side],
             className
@@ -134,7 +142,7 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
           {children}
           <button
             onClick={() => onOpenChange(false)}
-            className="ring-offset-background focus:ring-ring absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
+            className="ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
