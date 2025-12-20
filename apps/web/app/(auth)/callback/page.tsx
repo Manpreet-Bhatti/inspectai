@@ -12,7 +12,7 @@ export default function CallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const supabase = createClient();
-      const next = searchParams.get("next") || "/";
+      const next = searchParams.get("next") || "/dashboard";
       const errorParam = searchParams.get("error");
       const errorDescription = searchParams.get("error_description");
 
