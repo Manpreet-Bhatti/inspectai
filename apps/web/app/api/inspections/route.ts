@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import type { Database, Tables, TablesInsert } from "@/types/database";
 
-// TODO: Import prisma client and add authentication
-// import { prisma } from "@inspectai/database";
-
-const mockInspections = [
-  {
-    id: "1",
-    title: "123 Oak Street Inspection",
-    address: "123 Oak Street",
-    city: "Springfield",
-    state: "IL",
-    zipCode: "62701",
-    propertyType: "SINGLE_FAMILY",
-    status: "COMPLETED",
-    userId: "1",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15"),
-  },
-];
+type Inspection = Tables<"inspections">;
+type InspectionInsert = TablesInsert<"inspections">;
+type InspectionStatus = Database["public"]["Enums"]["inspection_status"];
+type PropertyType = Database["public"]["Enums"]["property_type"];
 
 /**
  * GET /api/inspections
@@ -25,35 +13,80 @@ const mockInspections = [
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const status = searchParams.get("status");
-    const propertyType = searchParams.get("propertyType");
+    const status = searchParams.get("status") as InspectionStatus | null;
+    const propertyType = searchParams.get(
+      "propertyType"
+    ) as PropertyType | null;
 
-    // TODO: Replace with actual database query
-    let filtered = [...mockInspections];
+    // Build query
+    let query = supabase
+      .from("inspections")
+      .select("*", { count: "exact" })
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
     if (status) {
-      filtered = filtered.filter((i) => i.status === status);
+      query = query.eq("status", status);
     }
 
     if (propertyType) {
-      filtered = filtered.filter((i) => i.propertyType === propertyType);
+      query = query.eq("property_type", propertyType);
     }
 
-    const total = filtered.length;
+    // Apply pagination
     const start = (page - 1) * limit;
-    const end = start + limit;
-    const data = filtered.slice(start, end);
+    query = query.range(start, start + limit - 1);
+
+    const { data: inspections, error, count } = await query;
+
+    if (error) {
+      console.error("Error fetching inspections:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch inspections" },
+        { status: 500 }
+      );
+    }
+
+    // Transform to camelCase for API response
+    const data = (inspections || []).map((inspection: Inspection) => ({
+      id: inspection.id,
+      title: inspection.title,
+      address: inspection.address,
+      city: inspection.city,
+      state: inspection.state,
+      zipCode: inspection.zip_code,
+      propertyType: inspection.property_type,
+      status: inspection.status,
+      userId: inspection.user_id,
+      scheduledAt: inspection.scheduled_at,
+      completedAt: inspection.completed_at,
+      metadata: inspection.metadata,
+      createdAt: inspection.created_at,
+      updatedAt: inspection.updated_at,
+    }));
 
     return NextResponse.json({
       data,
       meta: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
       },
     });
   } catch (error) {
@@ -71,6 +104,18 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     // Validate required fields
@@ -91,17 +136,53 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Replace with actual database creation
-    const newInspection = {
-      id: String(Date.now()),
-      ...body,
-      status: "DRAFT",
-      userId: "1", // TODO: Get from session
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // Create inspection
+    const inspectionData: InspectionInsert = {
+      title: body.title,
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      zip_code: body.zipCode,
+      property_type: body.propertyType.toLowerCase() as PropertyType,
+      status: "draft",
+      user_id: user.id,
+      scheduled_at: body.scheduledAt || null,
+      metadata: body.metadata || null,
     };
 
-    return NextResponse.json(newInspection, { status: 201 });
+    const { data: inspection, error } = (await supabase
+      .from("inspections")
+      .insert(inspectionData as never)
+      .select()
+      .single()) as { data: Inspection | null; error: Error | null };
+
+    if (error || !inspection) {
+      console.error("Error creating inspection:", error);
+      return NextResponse.json(
+        { error: "Failed to create inspection" },
+        { status: 500 }
+      );
+    }
+
+    // Transform to camelCase for API response
+    const response = {
+      id: inspection.id,
+      title: inspection.title,
+      address: inspection.address,
+      city: inspection.city,
+      state: inspection.state,
+      zipCode: inspection.zip_code,
+      propertyType: inspection.property_type,
+      status: inspection.status,
+      userId: inspection.user_id,
+      scheduledAt: inspection.scheduled_at,
+      completedAt: inspection.completed_at,
+      metadata: inspection.metadata,
+      createdAt: inspection.created_at,
+      updatedAt: inspection.updated_at,
+    };
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     console.error("Error creating inspection:", error);
     return NextResponse.json(
