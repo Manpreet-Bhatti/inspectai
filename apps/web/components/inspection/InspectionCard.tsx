@@ -9,8 +9,8 @@ import {
   FileText,
   MapPin,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import type { Inspection } from "@/types";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ export function InspectionCard({ inspection, onClick }: InspectionCardProps) {
             </h3>
 
             <div className="text-muted-foreground mb-3 flex items-center gap-1 text-sm">
-              <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">
                 {inspection.address}, {inspection.city}, {inspection.state}
               </span>
