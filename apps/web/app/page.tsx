@@ -9,6 +9,7 @@ import {
   Zap,
   Shield,
 } from "lucide-react";
+import { LandingNav } from "@/components/LandingNav";
 
 const features = [
   {
@@ -50,30 +51,12 @@ export default function LandingPage() {
       <nav className="border-border border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-                <span className="text-primary-foreground text-sm font-bold">
-                  AI
-                </span>
-              </div>
-              <span className="text-foreground text-xl font-bold">
-                InspectAI
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="text-muted-foreground hover:text-foreground text-sm font-medium"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold"
-              >
-                Get Started
-              </Link>
-            </div>
+            <img
+              src="/images/logo.svg"
+              alt="InspectAI Logo"
+              className="h-auto w-52"
+            />
+            <LandingNav />
           </div>
         </div>
       </nav>
@@ -229,14 +212,11 @@ export default function LandingPage() {
       <footer className="border-border border-t py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded">
-                <span className="text-primary-foreground text-xs font-bold">
-                  AI
-                </span>
-              </div>
-              <span className="text-foreground font-semibold">InspectAI</span>
-            </div>
+            <img
+              src="/images/logo.svg"
+              alt="InspectAI Logo"
+              className="h-auto w-40"
+            />
             <p className="text-muted-foreground text-sm">
               © {new Date().getFullYear()} InspectAI. All rights reserved.
             </p>
