@@ -3,32 +3,32 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 
 const propertyTypes = [
   {
-    value: "SINGLE_FAMILY",
+    value: "single_family",
     label: "Single Family",
     description: "Detached single-family home",
   },
   {
-    value: "MULTI_FAMILY",
+    value: "multi_family",
     label: "Multi Family",
     description: "Duplex, triplex, or apartment building",
   },
-  { value: "CONDO", label: "Condo", description: "Condominium unit" },
+  { value: "condo", label: "Condo", description: "Condominium unit" },
   {
-    value: "TOWNHOUSE",
+    value: "townhouse",
     label: "Townhouse",
     description: "Attached townhouse or row house",
   },
   {
-    value: "COMMERCIAL",
+    value: "commercial",
     label: "Commercial",
     description: "Office, retail, or commercial space",
   },
   {
-    value: "INDUSTRIAL",
+    value: "industrial",
     label: "Industrial",
     description: "Warehouse or industrial property",
   },
@@ -37,6 +37,7 @@ const propertyTypes = [
 export default function NewInspectionPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     address: "",
@@ -59,13 +60,36 @@ export default function NewInspectionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
-    // TODO: Implement actual API call
-    console.log("Creating inspection:", formData);
+    try {
+      const response = await fetch("/api/inspections", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          propertyType: formData.propertyType,
+          metadata: formData.notes ? { notes: formData.notes } : null,
+        }),
+      });
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create inspection");
+      }
 
-    router.push("/inspections/1");
+      const inspection = await response.json();
+      router.push(`/inspections/${inspection.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create inspection");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,6 +112,13 @@ export default function NewInspectionPage() {
           Create a new property inspection to get started.
         </p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-destructive/10 text-destructive rounded-lg p-4 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -279,8 +310,9 @@ export default function NewInspectionPage() {
           <button
             type="submit"
             disabled={isSubmitting || !formData.propertyType}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Creating..." : "Create Inspection"}
           </button>
         </div>
