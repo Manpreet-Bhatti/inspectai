@@ -13,9 +13,9 @@ import {
   User,
   ChevronsUpDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/Button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/Sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,19 +23,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
+} from "@/components/ui/DropdownMenu";
+import { Separator } from "@/components/ui/Separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Inspections", href: "/inspections", icon: ClipboardList },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -80,7 +80,13 @@ function NavLink({
   );
 }
 
-function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+function Sidebar({
+  onNavigate,
+  dropdownSide = "bottom",
+}: {
+  onNavigate?: () => void;
+  dropdownSide?: "top" | "bottom";
+}) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
 
@@ -111,11 +117,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             key={item.name}
             href={item.href}
             icon={item.icon}
-            isActive={
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href)
-            }
+            isActive={pathname.startsWith(item.href)}
             onClick={onNavigate}
           >
             {item.name}
@@ -149,7 +151,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <ChevronsUpDown className="text-muted-foreground h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" side={dropdownSide} className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => {}}>
@@ -274,7 +276,7 @@ export default function DashboardLayout({
     <div className="bg-background flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="border-border bg-card hidden w-64 shrink-0 border-r lg:block">
-        <Sidebar />
+        <Sidebar dropdownSide="top" />
       </aside>
 
       {/* Main Content */}
