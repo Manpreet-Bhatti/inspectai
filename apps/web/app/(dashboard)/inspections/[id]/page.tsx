@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
@@ -12,50 +13,34 @@ import {
   Calendar,
   MoreVertical,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-const inspection = {
-  id: "1",
-  title: "123 Oak Street Inspection",
-  address: "123 Oak Street",
-  city: "Springfield",
-  state: "IL",
-  zipCode: "62701",
-  propertyType: "Single Family",
-  status: "in_progress",
-  createdAt: "2024-01-15",
-  scheduledAt: "2024-01-15T10:00:00",
-  completedAt: null,
-  photosCount: 23,
-  voiceNotesCount: 5,
-  findingsCount: 8,
+type Inspection = {
+  id: string;
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  property_type: string | null;
+  status: string | null;
+  created_at: string | null;
+  scheduled_at: string | null;
+  completed_at: string | null;
+  user_id: string;
 };
 
-const recentFindings = [
-  {
-    id: "1",
-    title: "Water damage on ceiling",
-    category: "STRUCTURAL",
-    severity: "MAJOR",
-    location: "Living Room",
-  },
-  {
-    id: "2",
-    title: "Outdated electrical panel",
-    category: "ELECTRICAL",
-    severity: "CRITICAL",
-    location: "Basement",
-  },
-  {
-    id: "3",
-    title: "Minor crack in foundation",
-    category: "STRUCTURAL",
-    severity: "MINOR",
-    location: "Foundation",
-  },
-];
+type Finding = {
+  id: string;
+  title: string;
+  category: string | null;
+  severity: string | null;
+  location: string | null;
+};
 
-function getSeverityBadge(severity: string) {
-  switch (severity) {
+function getSeverityBadge(severity: string | null) {
+  switch (severity?.toUpperCase()) {
     case "CRITICAL":
       return (
         <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
@@ -77,13 +62,13 @@ function getSeverityBadge(severity: string) {
     default:
       return (
         <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium">
-          {severity}
+          {severity || "Unknown"}
         </span>
       );
   }
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string | null) {
   switch (status) {
     case "completed":
       return (
@@ -102,10 +87,27 @@ function getStatusBadge(status: string) {
     default:
       return (
         <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-3 py-1 text-sm font-medium">
-          {status}
+          {status || "Draft"}
         </span>
       );
   }
+}
+
+function formatDate(dateString: string | null): string {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatPropertyType(type: string | null): string {
+  if (!type) return "N/A";
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 export default async function InspectionDetailPage({
@@ -114,9 +116,61 @@ export default async function InspectionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const supabase = await createClient();
 
-  // TODO: Fetch inspection data based on id
-  console.log("Inspection ID:", id);
+  // Get the current user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect("/login");
+  }
+
+  // Fetch inspection
+  const { data: inspection, error: inspectionError } = (await supabase
+    .from("inspections")
+    .select("*")
+    .eq("id", id)
+    .single()) as { data: Inspection | null; error: Error | null };
+
+  if (inspectionError || !inspection) {
+    notFound();
+  }
+
+  // Verify user owns this inspection
+  if (inspection.user_id !== user.id) {
+    notFound();
+  }
+
+  // Fetch counts and recent findings in parallel
+  const [photosResult, voiceNotesResult, findingsResult, recentFindingsResult] =
+    await Promise.all([
+      supabase
+        .from("photos")
+        .select("*", { count: "exact", head: true })
+        .eq("inspection_id", id),
+      supabase
+        .from("voice_notes")
+        .select("*", { count: "exact", head: true })
+        .eq("inspection_id", id),
+      supabase
+        .from("findings")
+        .select("*", { count: "exact", head: true })
+        .eq("inspection_id", id),
+      supabase
+        .from("findings")
+        .select("id, title, category, severity, location")
+        .eq("inspection_id", id)
+        .order("created_at", { ascending: false })
+        .limit(3) as { data: Finding[] | null },
+    ]);
+
+  const photosCount = photosResult.count || 0;
+  const voiceNotesCount = voiceNotesResult.count || 0;
+  const findingsCount = findingsResult.count || 0;
+  const recentFindings = recentFindingsResult.data || [];
 
   return (
     <div className="space-y-6">
@@ -142,15 +196,15 @@ export default async function InspectionDetailPage({
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               {inspection.address}, {inspection.city}, {inspection.state}{" "}
-              {inspection.zipCode}
+              {inspection.zip_code}
             </span>
             <span className="flex items-center gap-1">
               <Building2 className="h-4 w-4" />
-              {inspection.propertyType}
+              {formatPropertyType(inspection.property_type)}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-4 w-4" />
-              {inspection.createdAt}
+              {formatDate(inspection.created_at)}
             </span>
           </div>
         </div>
@@ -171,9 +225,7 @@ export default async function InspectionDetailPage({
             <Camera className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <p className="text-foreground text-2xl font-bold">
-              {inspection.photosCount}
-            </p>
+            <p className="text-foreground text-2xl font-bold">{photosCount}</p>
             <p className="text-muted-foreground text-sm">Photos</p>
           </div>
         </Link>
@@ -184,7 +236,7 @@ export default async function InspectionDetailPage({
           </div>
           <div>
             <p className="text-foreground text-2xl font-bold">
-              {inspection.voiceNotesCount}
+              {voiceNotesCount}
             </p>
             <p className="text-muted-foreground text-sm">Voice Notes</p>
           </div>
@@ -198,9 +250,7 @@ export default async function InspectionDetailPage({
             <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-foreground text-2xl font-bold">
-              {inspection.findingsCount}
-            </p>
+            <p className="text-foreground text-2xl font-bold">{findingsCount}</p>
             <p className="text-muted-foreground text-sm">Findings</p>
           </div>
         </Link>
@@ -234,23 +284,29 @@ export default async function InspectionDetailPage({
               View all
             </Link>
           </div>
-          <div className="divide-border divide-y">
-            {recentFindings.map((finding) => (
-              <div key={finding.id} className="px-6 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-foreground font-medium">
-                      {finding.title}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {finding.category} · {finding.location}
-                    </p>
+          {recentFindings.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <p className="text-muted-foreground">No findings yet</p>
+            </div>
+          ) : (
+            <div className="divide-border divide-y">
+              {recentFindings.map((finding) => (
+                <div key={finding.id} className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-foreground font-medium">
+                        {finding.title}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {finding.category} · {finding.location || "No location"}
+                      </p>
+                    </div>
+                    {getSeverityBadge(finding.severity)}
                   </div>
-                  {getSeverityBadge(finding.severity)}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Upload Section */}

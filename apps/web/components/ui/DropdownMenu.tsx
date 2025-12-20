@@ -94,6 +94,7 @@ DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 
 interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
   align?: "start" | "center" | "end";
+  side?: "top" | "bottom";
   sideOffset?: number;
 }
 
@@ -102,7 +103,7 @@ const DropdownMenuContent = React.forwardRef<
   DropdownMenuContentProps
 >(
   (
-    { className, align = "center", sideOffset = 4, children, ...props },
+    { className, align = "center", side = "bottom", sideOffset = 4, children, ...props },
     ref
   ) => {
     const { open, onOpenChange } = useDropdownMenuContext();
@@ -144,13 +145,19 @@ const DropdownMenuContent = React.forwardRef<
       end: "right-0",
     };
 
+    const sideStyles = {
+      top: "bottom-full mb-1",
+      bottom: "top-full mt-1",
+    };
+
     return (
       <div
         ref={contentRef}
         className={cn(
-          "bg-popover text-popover-foreground z-50 min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-md",
+          "bg-popover text-popover-foreground z-50 min-w-32 overflow-hidden rounded-md border p-1 shadow-md",
           "animate-in fade-in-0 zoom-in-95",
-          "absolute top-full mt-1",
+          "absolute",
+          sideStyles[side],
           alignStyles[align],
           className
         )}

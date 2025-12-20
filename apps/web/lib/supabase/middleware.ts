@@ -15,7 +15,11 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(
-          cookiesToSet: { name: string; value: string; options: CookieOptions }[]
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options: CookieOptions;
+          }[]
         ) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
@@ -46,7 +50,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") || pathname.startsWith("/register");
   const isCallbackRoute = pathname.startsWith("/callback");
   const isProtectedRoute =
-    pathname === "/" ||
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/inspections") ||
     pathname.startsWith("/settings");
 
@@ -58,7 +62,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

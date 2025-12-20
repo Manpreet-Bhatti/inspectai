@@ -13,76 +13,17 @@ import {
   Check,
   X,
   MoreVertical,
+  Loader2,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
-
-const photos = [
-  {
-    id: "1",
-    fileName: "exterior_front.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "EXTERIOR",
-    location: "Front Entrance",
-    aiCaption: "Front view of a two-story single family home with brick facade",
-    aiCondition: "Good condition",
-    aiConfidence: 0.92,
-    processedAt: "2024-01-15T10:30:00",
-  },
-  {
-    id: "2",
-    fileName: "roof_north.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "ROOF",
-    location: "North Side",
-    aiCaption: "Asphalt shingle roof showing signs of weathering",
-    aiCondition: "Fair condition",
-    aiConfidence: 0.87,
-    processedAt: "2024-01-15T10:31:00",
-  },
-  {
-    id: "3",
-    fileName: "living_room.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "INTERIOR",
-    location: "Living Room",
-    aiCaption: "Spacious living room with water stain visible on ceiling",
-    aiCondition: "Damaged",
-    aiConfidence: 0.95,
-    processedAt: "2024-01-15T10:32:00",
-  },
-  {
-    id: "4",
-    fileName: "electrical_panel.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "ELECTRICAL",
-    location: "Basement",
-    aiCaption: "Outdated electrical panel with Federal Pacific breakers",
-    aiCondition: "Poor condition",
-    aiConfidence: 0.91,
-    processedAt: "2024-01-15T10:33:00",
-  },
-  {
-    id: "5",
-    fileName: "foundation_crack.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "FOUNDATION",
-    location: "Southeast Corner",
-    aiCaption: "Hairline crack in concrete foundation wall",
-    aiCondition: "Fair condition",
-    aiConfidence: 0.88,
-    processedAt: "2024-01-15T10:34:00",
-  },
-  {
-    id: "6",
-    fileName: "hvac_unit.jpg",
-    thumbnailUrl: "/api/placeholder/300/200",
-    category: "HVAC",
-    location: "Utility Room",
-    aiCaption: "Central air conditioning unit, approximately 10 years old",
-    aiCondition: "Good condition",
-    aiConfidence: 0.85,
-    processedAt: "2024-01-15T10:35:00",
-  },
-];
+import {
+  usePhotos,
+  useDeletePhoto,
+  useBatchAnalyzePhotos,
+} from "@/hooks/usePhotos";
+import { PhotoUploader } from "@/components/photo/PhotoUploader";
+import { Button } from "@/components/ui/Button";
 
 const categories = [
   "All",
@@ -141,11 +82,53 @@ export default function PhotosPage({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [showUploader, setShowUploader] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredPhotos =
-    selectedCategory === "All"
-      ? photos
-      : photos.filter((p) => p.category === selectedCategory);
+  // Fetch photos using the hook
+  const { data: photosData, isLoading, error, refetch } = usePhotos(id);
+  const deletePhotoMutation = useDeletePhoto();
+  const analyzePhotosMutation = useBatchAnalyzePhotos();
+
+  const photos = photosData?.data || [];
+
+  // Filter photos by category and search
+  const filteredPhotos = photos.filter((p) => {
+    const matchesCategory =
+      selectedCategory === "All" || p.category === selectedCategory;
+    const matchesSearch =
+      !searchQuery ||
+      p.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.aiCaption?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const handleDeleteSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+
+    try {
+      await Promise.all(
+        selectedPhotos.map((photoId) =>
+          deletePhotoMutation.mutateAsync(photoId)
+        )
+      );
+      setSelectedPhotos([]);
+    } catch (error) {
+      console.error("Failed to delete photos:", error);
+    }
+  };
+
+  const handleAnalyzeSelected = async () => {
+    if (selectedPhotos.length === 0) return;
+
+    try {
+      await analyzePhotosMutation.mutateAsync(selectedPhotos);
+      setSelectedPhotos([]);
+    } catch (error) {
+      console.error("Failed to analyze photos:", error);
+    }
+  };
 
   const togglePhotoSelection = (photoId: string) => {
     setSelectedPhotos((prev) =>
@@ -155,8 +138,50 @@ export default function PhotosPage({
     );
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+          <p className="text-muted-foreground mt-2">Loading photos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Failed to load photos</p>
+          <Button variant="outline" onClick={() => refetch()} className="mt-4">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Upload Modal */}
+      {showUploader && (
+        <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-card border-border mx-4 w-full max-w-2xl rounded-xl border p-6 shadow-xl">
+            <PhotoUploader
+              inspectionId={id}
+              onUploadComplete={() => {
+                setShowUploader(false);
+                refetch();
+              }}
+              onClose={() => setShowUploader(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Back Link */}
       <Link
         href={`/inspections/${id}`}
@@ -173,13 +198,14 @@ export default function PhotosPage({
             Photos
           </h1>
           <p className="text-muted-foreground">
-            {photos.length} photos · {selectedPhotos.length} selected
+            {photos.length} photo{photos.length !== 1 ? "s" : ""} ·{" "}
+            {selectedPhotos.length} selected
           </p>
         </div>
-        <button className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors">
-          <Upload className="h-4 w-4" />
+        <Button onClick={() => setShowUploader(true)}>
+          <Upload className="mr-2 h-4 w-4" />
           Upload Photos
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -202,11 +228,13 @@ export default function PhotosPage({
 
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search photos..."
-              className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary rounded-lg border py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-1"
+              className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary rounded-lg border py-2 pr-4 pl-10 text-sm focus:ring-1 focus:outline-none"
             />
           </div>
 
@@ -246,22 +274,64 @@ export default function PhotosPage({
           <span className="text-foreground text-sm font-medium">
             {selectedPhotos.length} selected
           </span>
-          <button className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium">
-            <Sparkles className="h-4 w-4" />
-            Analyze Selected
-          </button>
-          <button
-            onClick={() => setSelectedPhotos([])}
-            className="border-input bg-background text-foreground hover:bg-muted inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium"
+          <Button
+            size="sm"
+            onClick={handleAnalyzeSelected}
+            disabled={analyzePhotosMutation.isPending}
           >
-            <X className="h-4 w-4" />
+            {analyzePhotosMutation.isPending ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1 h-4 w-4" />
+            )}
+            Analyze Selected
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleDeleteSelected}
+            disabled={deletePhotoMutation.isPending}
+          >
+            {deletePhotoMutation.isPending ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-1 h-4 w-4" />
+            )}
+            Delete Selected
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedPhotos([])}
+          >
+            <X className="mr-1 h-4 w-4" />
             Clear Selection
-          </button>
+          </Button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {photos.length === 0 && (
+        <div className="bg-card border-border flex min-h-[400px] flex-col items-center justify-center rounded-xl border p-8 text-center">
+          <div className="bg-muted rounded-full p-4">
+            <ImageIcon className="text-muted-foreground h-8 w-8" />
+          </div>
+          <h3 className="text-foreground mt-4 text-lg font-semibold">
+            No photos yet
+          </h3>
+          <p className="text-muted-foreground mt-1 max-w-sm">
+            Upload photos to start documenting this inspection. You can drag and
+            drop multiple files at once.
+          </p>
+          <Button onClick={() => setShowUploader(true)} className="mt-4">
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Photos
+          </Button>
         </div>
       )}
 
       {/* Photos Grid */}
-      {viewMode === "grid" ? (
+      {photos.length > 0 && viewMode === "grid" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredPhotos.map((photo) => (
             <div
@@ -275,7 +345,7 @@ export default function PhotosPage({
               {/* Selection Checkbox */}
               <button
                 onClick={() => togglePhotoSelection(photo.id)}
-                className={`absolute left-3 top-3 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
+                className={`absolute top-3 left-3 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
                   selectedPhotos.includes(photo.id)
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-white/50 bg-black/30 text-white opacity-0 group-hover:opacity-100"
@@ -288,9 +358,17 @@ export default function PhotosPage({
 
               {/* Image */}
               <div className="bg-muted aspect-video">
-                <div className="text-muted-foreground flex h-full items-center justify-center">
-                  Photo Preview
-                </div>
+                {photo.originalUrl || photo.thumbnailUrl ? (
+                  <img
+                    src={photo.thumbnailUrl || photo.originalUrl || ""}
+                    alt={photo.fileName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="text-muted-foreground flex h-full items-center justify-center">
+                    <ImageIcon className="h-8 w-8" />
+                  </div>
+                )}
               </div>
 
               {/* Info */}
@@ -309,7 +387,7 @@ export default function PhotosPage({
                   </button>
                 </div>
 
-                {photo.aiCaption && (
+                {photo.aiCaption ? (
                   <div className="bg-muted/50 mt-3 rounded-lg p-2">
                     <div className="mb-1 flex items-center gap-1">
                       <Sparkles className="text-primary h-3 w-3" />
@@ -321,19 +399,31 @@ export default function PhotosPage({
                       {photo.aiCaption}
                     </p>
                     <div className="mt-2 flex items-center justify-between">
-                      {getConditionBadge(photo.aiCondition)}
-                      <span className="text-muted-foreground text-xs">
-                        {Math.round(photo.aiConfidence * 100)}% confidence
-                      </span>
+                      {photo.aiCondition
+                        ? getConditionBadge(photo.aiCondition)
+                        : null}
+                      {photo.aiConfidence && (
+                        <span className="text-muted-foreground text-xs">
+                          {Math.round(photo.aiConfidence * 100)}% confidence
+                        </span>
+                      )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted/50 mt-3 rounded-lg p-2">
+                    <p className="text-muted-foreground text-center text-xs">
+                      Not analyzed yet
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        /* Photos List View */
+      )}
+
+      {/* Photos List View */}
+      {photos.length > 0 && viewMode === "list" && (
         <div className="border-border bg-card rounded-xl border shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -345,22 +435,22 @@ export default function PhotosPage({
                       className="border-input h-4 w-4 rounded"
                     />
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     Photo
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     Category
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     Location
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     AI Caption
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-left text-xs font-medium tracking-wider uppercase">
                     Condition
                   </th>
-                  <th className="text-muted-foreground px-4 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                  <th className="text-muted-foreground px-4 py-3 text-right text-xs font-medium tracking-wider uppercase">
                     Actions
                   </th>
                 </tr>
@@ -378,7 +468,17 @@ export default function PhotosPage({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="bg-muted h-10 w-14 rounded" />
+                        {photo.thumbnailUrl || photo.originalUrl ? (
+                          <img
+                            src={photo.thumbnailUrl || photo.originalUrl || ""}
+                            alt={photo.fileName}
+                            className="h-10 w-14 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="bg-muted flex h-10 w-14 items-center justify-center rounded">
+                            <ImageIcon className="text-muted-foreground h-4 w-4" />
+                          </div>
+                        )}
                         <span className="text-foreground font-medium">
                           {photo.fileName}
                         </span>
@@ -396,7 +496,13 @@ export default function PhotosPage({
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      {getConditionBadge(photo.aiCondition)}
+                      {photo.aiCondition ? (
+                        getConditionBadge(photo.aiCondition)
+                      ) : (
+                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+                          Not analyzed
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2">
