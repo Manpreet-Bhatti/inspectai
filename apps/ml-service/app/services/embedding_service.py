@@ -1,26 +1,25 @@
 """Embedding service for generating text embeddings."""
 
 import logging
-from typing import Any
+import numpy as np
 
-from app.config import MODELS, get_settings
+from typing import Any
+from app.config import MODELS
+from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
-# Lazy load model
-_embedding_model = None
+EMBEDDING_MODEL = None
 
 
 def _get_embedding_model():
     """Lazy load the sentence transformer model."""
-    global _embedding_model
-    if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
 
+    if EMBEDDING_MODEL is None:
         model_config = MODELS["embeddings"]
-        _embedding_model = SentenceTransformer(model_config["model_id"])
-        logger.info(f"Loaded embedding model: {model_config['model_id']}")
-    return _embedding_model
+        EMBEDDING_MODEL = SentenceTransformer(model_config["model_id"])
+        logger.info("Loaded embedding model: %s", model_config['model_id'])
+    return EMBEDDING_MODEL
 
 
 class EmbeddingService:
@@ -39,10 +38,10 @@ class EmbeddingService:
             model = _get_embedding_model()
             embedding = model.encode(text, convert_to_numpy=True)
             embedding_list = embedding.tolist()
-            logger.debug(f"Generated embedding for text ({len(text)} chars)")
+            logger.debug("Generated embedding for text (%d chars)", len(text))
             return embedding_list
         except Exception as e:
-            logger.error(f"Embedding generation failed: {e}")
+            logger.error("Embedding generation failed: %s", e)
             return [0.0] * self.dimensions
 
     async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
@@ -55,14 +54,13 @@ class EmbeddingService:
             embeddings = model.encode(texts, convert_to_numpy=True)
             return [emb.tolist() for emb in embeddings]
         except Exception as e:
-            logger.error(f"Batch embedding generation failed: {e}")
+            logger.error("Batch embedding generation failed: %s", e)
             return [[0.0] * self.dimensions for _ in texts]
 
     async def compute_similarity(
         self, embedding1: list[float], embedding2: list[float]
     ) -> float:
         """Compute cosine similarity between two embeddings."""
-        import numpy as np
 
         v1 = np.array(embedding1)
         v2 = np.array(embedding2)
@@ -86,13 +84,12 @@ class EmbeddingService:
         }
 
 
-# Singleton instance
 _service: EmbeddingService | None = None
 
 
 def get_embedding_service() -> EmbeddingService:
     """Get the embedding service instance."""
-    global _service
+
     if _service is None:
         _service = EmbeddingService()
     return _service
