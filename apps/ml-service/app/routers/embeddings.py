@@ -3,7 +3,6 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-
 from app.models.schemas import (
     EmbeddingRequest,
     EmbeddingResponse,
@@ -26,7 +25,7 @@ async def generate_embedding(request: EmbeddingRequest) -> EmbeddingResponse:
     If a finding_id is provided, the embedding will also be stored
     in the database for that finding.
     """
-    logger.info("Generating embedding for text (%s chars)", len(request.text))
+    logger.info("Generating embedding for text (%d chars)", len(request.text))
 
     embedding_service = get_embedding_service()
 
@@ -64,7 +63,7 @@ async def generate_embeddings_batch(texts: list[str]) -> list[EmbeddingResponse]
             detail="Maximum 100 texts per batch",
         )
 
-    logger.info("Generating batch embeddings for %s texts", len(texts))
+    logger.info("Generating batch embeddings for %d texts", len(texts))
 
     embedding_service = get_embedding_service()
 
@@ -132,7 +131,7 @@ async def find_similar_findings(
             for r in results
         ]
 
-        logger.info("Found %s similar findings", len(findings))
+        logger.info("Found %d similar findings", len(findings))
 
         return SimilarFindingResponse(
             findings=findings,

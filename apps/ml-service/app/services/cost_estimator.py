@@ -22,20 +22,17 @@ class CostEstimatorService:
         description: str | None = None,
     ) -> CostEstimateResponse:
         """Estimate repair cost for a finding."""
-        # Get base cost range
+
         cost_range = self._get_cost_range(category, severity)
         min_cost, max_cost = cost_range
 
-        # Calculate estimate (midpoint with some variance based on description)
         estimate = (min_cost + max_cost) / 2
 
-        # Adjust based on description keywords if provided
         if description:
             adjustment = self._analyze_description(description)
             estimate *= adjustment
             estimate = max(min_cost, min(max_cost, estimate))
 
-        # Confidence based on how specific the estimate can be
         confidence = self._calculate_confidence(category, description)
 
         logger.debug(
@@ -56,11 +53,10 @@ class CostEstimatorService:
         self, category: FindingCategory, severity: Severity
     ) -> tuple[float, float]:
         """Get the cost range for a category and severity."""
-        # Default to cosmetic category if not found
+
         category_costs = self.cost_data.get(
             category, self.cost_data["cosmetic"])
 
-        # Default to cosmetic severity if not found
         if severity == "info":
             return (0, 100)
 
@@ -121,7 +117,6 @@ class CostEstimatorService:
         if category in ["structural", "electrical", "hvac"]:
             base_confidence -= 0.1
 
-        # Description provides more context
         if description and len(description) > 50:
             base_confidence += 0.1
 
@@ -153,7 +148,6 @@ class CostEstimatorService:
         }
 
 
-# Singleton instance
 _service: CostEstimatorService | None = None
 
 
