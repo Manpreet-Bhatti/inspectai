@@ -2,9 +2,7 @@
 
 import logging
 from typing import Any
-
 from fastapi import APIRouter, HTTPException
-
 from app.models.schemas import CostEstimateRequest, CostEstimateResponse
 from app.services.cost_estimator import get_cost_estimator_service
 
