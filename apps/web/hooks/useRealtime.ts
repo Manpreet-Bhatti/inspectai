@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { photoKeys } from "./usePhotos";
 import { findingKeys } from "./useFindings";
+import { voiceNoteKeys } from "./useVoiceNotes";
 
 /**
  * Subscribes to Supabase Realtime for photo analysis completion events.
@@ -87,6 +88,54 @@ export function useFindingsUpdates(
             queryKey: findingKeys.lists(),
           });
           onInsertRef.current?.(finding);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [inspectionId, queryClient]);
+}
+
+/**
+ * Subscribes to voice_notes table updates for transcription completion.
+ * Invalidates the voice notes list when a transcript arrives.
+ */
+export function useVoiceNoteUpdates(
+  inspectionId: string | null,
+  onUpdate?: (note: Record<string, unknown>) => void
+) {
+  const queryClient = useQueryClient();
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  useEffect(() => {
+    if (!inspectionId) return;
+
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`voice_notes:${inspectionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "voice_notes",
+          filter: `inspection_id=eq.${inspectionId}`,
+        },
+        (payload) => {
+          const note = payload.new as Record<string, unknown>;
+          queryClient.invalidateQueries({
+            queryKey: voiceNoteKeys.list(inspectionId),
+          });
+          if (note.id) {
+            queryClient.invalidateQueries({
+              queryKey: voiceNoteKeys.detail(note.id as string),
+            });
+          }
+          onUpdateRef.current?.(note);
         }
       )
       .subscribe();
