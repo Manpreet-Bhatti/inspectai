@@ -10,20 +10,13 @@ import {
   Filter,
   Search,
   Sparkles,
-  Check,
   X,
-  MoreVertical,
   Loader2,
-  Trash2,
   Image as ImageIcon,
 } from "lucide-react";
-import {
-  usePhotos,
-  useDeletePhoto,
-  useBatchAnalyzePhotos,
-} from "@/hooks/usePhotos";
-import { usePhotoAnalysisUpdates } from "@/hooks/useRealtime";
+import { usePhotos, useBatchAnalyzePhotos } from "@/hooks/usePhotos";
 import { PhotoUploader } from "@/components/photo/PhotoUploader";
+import { PhotoGrid } from "@/components/photo/PhotoGrid";
 import { Button } from "@/components/ui/Button";
 
 const categories = [
@@ -39,41 +32,6 @@ const categories = [
   "OTHER",
 ];
 
-function getConditionBadge(condition: string) {
-  switch (condition.toLowerCase()) {
-    case "good condition":
-      return (
-        <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-          Good
-        </span>
-      );
-    case "fair condition":
-      return (
-        <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-600 dark:text-yellow-400">
-          Fair
-        </span>
-      );
-    case "poor condition":
-      return (
-        <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-600 dark:text-orange-400">
-          Poor
-        </span>
-      );
-    case "damaged":
-      return (
-        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
-          Damaged
-        </span>
-      );
-    default:
-      return (
-        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-          {condition}
-        </span>
-      );
-  }
-}
-
 export default function PhotosPage({
   params,
 }: {
@@ -88,11 +46,7 @@ export default function PhotosPage({
 
   // Fetch photos using the hook
   const { data: photosData, isLoading, error, refetch } = usePhotos(id);
-  const deletePhotoMutation = useDeletePhoto();
   const analyzePhotosMutation = useBatchAnalyzePhotos();
-
-  // Subscribe to Supabase Realtime — auto-refreshes photos when AI analysis completes
-  usePhotoAnalysisUpdates(id);
 
   const photos = photosData?.data || [];
 
@@ -107,21 +61,6 @@ export default function PhotosPage({
       p.aiCaption?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const handleDeleteSelected = async () => {
-    if (selectedPhotos.length === 0) return;
-
-    try {
-      await Promise.all(
-        selectedPhotos.map((photoId) =>
-          deletePhotoMutation.mutateAsync(photoId)
-        )
-      );
-      setSelectedPhotos([]);
-    } catch (error) {
-      console.error("Failed to delete photos:", error);
-    }
-  };
 
   const handleAnalyzeSelected = async () => {
     if (selectedPhotos.length === 0) return;
@@ -292,19 +231,6 @@ export default function PhotosPage({
           </Button>
           <Button
             size="sm"
-            variant="destructive"
-            onClick={handleDeleteSelected}
-            disabled={deletePhotoMutation.isPending}
-          >
-            {deletePhotoMutation.isPending ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="mr-1 h-4 w-4" />
-            )}
-            Delete Selected
-          </Button>
-          <Button
-            size="sm"
             variant="outline"
             onClick={() => setSelectedPhotos([])}
           >
@@ -336,94 +262,12 @@ export default function PhotosPage({
 
       {/* Photos Grid */}
       {photos.length > 0 && viewMode === "grid" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredPhotos.map((photo) => (
-            <div
-              key={photo.id}
-              className={`bg-card group relative overflow-hidden rounded-xl border shadow-sm transition-all ${
-                selectedPhotos.includes(photo.id)
-                  ? "border-primary ring-primary/20 ring-2"
-                  : "border-border hover:border-muted-foreground"
-              }`}
-            >
-              {/* Selection Checkbox */}
-              <button
-                onClick={() => togglePhotoSelection(photo.id)}
-                className={`absolute top-3 left-3 z-10 flex h-6 w-6 items-center justify-center rounded-md border transition-all ${
-                  selectedPhotos.includes(photo.id)
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-white/50 bg-black/30 text-white opacity-0 group-hover:opacity-100"
-                }`}
-              >
-                {selectedPhotos.includes(photo.id) && (
-                  <Check className="h-4 w-4" />
-                )}
-              </button>
-
-              {/* Image */}
-              <div className="bg-muted aspect-video">
-                {photo.originalUrl || photo.thumbnailUrl ? (
-                  <img
-                    src={photo.thumbnailUrl || photo.originalUrl || ""}
-                    alt={photo.fileName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="text-muted-foreground flex h-full items-center justify-center">
-                    <ImageIcon className="h-8 w-8" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-foreground truncate font-medium">
-                      {photo.fileName}
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {photo.location}
-                    </p>
-                  </div>
-                  <button className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1">
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {photo.aiCaption ? (
-                  <div className="bg-muted/50 mt-3 rounded-lg p-2">
-                    <div className="mb-1 flex items-center gap-1">
-                      <Sparkles className="text-primary h-3 w-3" />
-                      <span className="text-primary text-xs font-medium">
-                        AI Analysis
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground line-clamp-2 text-xs">
-                      {photo.aiCaption}
-                    </p>
-                    <div className="mt-2 flex items-center justify-between">
-                      {photo.aiCondition
-                        ? getConditionBadge(photo.aiCondition)
-                        : null}
-                      {photo.aiConfidence && (
-                        <span className="text-muted-foreground text-xs">
-                          {Math.round(photo.aiConfidence * 100)}% confidence
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-muted/50 mt-3 rounded-lg p-2">
-                    <p className="text-muted-foreground text-center text-xs">
-                      Not analyzed yet
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <PhotoGrid
+          photos={filteredPhotos}
+          inspectionId={id}
+          selectedPhotos={selectedPhotos}
+          onSelectPhoto={togglePhotoSelection}
+        />
       )}
 
       {/* Photos List View */}
@@ -455,7 +299,7 @@ export default function PhotosPage({
                     Condition
                   </th>
                   <th className="text-muted-foreground px-4 py-3 text-right text-xs font-medium tracking-wider uppercase">
-                    Actions
+                    Status
                   </th>
                 </tr>
               </thead>
@@ -496,22 +340,32 @@ export default function PhotosPage({
                     </td>
                     <td className="max-w-xs px-4 py-3">
                       <p className="text-muted-foreground truncate text-sm">
-                        {photo.aiCaption}
+                        {photo.aiCaption ?? "—"}
                       </p>
                     </td>
                     <td className="px-4 py-3">
                       {photo.aiCondition ? (
-                        getConditionBadge(photo.aiCondition)
-                      ) : (
-                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-                          Not analyzed
+                        <span className="text-foreground text-sm">
+                          {photo.aiCondition}
                         </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                      {photo.processedAt ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                          Analyzed
+                        </span>
+                      ) : photo.error ? (
+                        <span className="bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs font-medium">
+                          Error
+                        </span>
+                      ) : (
+                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+                          Pending
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
