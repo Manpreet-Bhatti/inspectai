@@ -1,5 +1,7 @@
+"use client";
+
+import { useState, use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Plus,
@@ -11,26 +13,14 @@ import {
   Camera,
   Sparkles,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { useFindings } from "@/hooks/useFindings";
+import { useFindingsUpdates } from "@/hooks/useRealtime";
+import { Button } from "@/components/ui/Button";
+import type { FindingFilters } from "@/types";
 
-type Finding = {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  severity: string | null;
-  location: string | null;
-  cost_estimate: number | null;
-  cost_min: number | null;
-  cost_max: number | null;
-  is_ai_generated: boolean | null;
-  confidence: number | null;
-  photo_id: string | null;
-};
-
-function getSeverityBadge(severity: string | null) {
+function getSeverityBadge(severity: string | null | undefined) {
   switch (severity?.toLowerCase()) {
     case "critical":
       return (
@@ -66,8 +56,8 @@ function getSeverityBadge(severity: string | null) {
   }
 }
 
-function formatCurrency(amount: number | null) {
-  if (amount === null) return "$0";
+function formatCurrency(amount: number | null | undefined) {
+  if (!amount) return "$0";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -75,7 +65,7 @@ function formatCurrency(amount: number | null) {
   }).format(amount);
 }
 
-function formatCategory(category: string | null): string {
+function formatCategory(category: string | null | undefined): string {
   if (!category) return "Other";
   return category
     .split("_")
@@ -83,66 +73,69 @@ function formatCategory(category: string | null): string {
     .join(" ");
 }
 
-export default async function FindingsPage({
+export default function FindingsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const supabase = await createClient();
+  const { id } = use(params);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("");
 
-  // Get the current user
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const filters: FindingFilters = {
+    ...(categoryFilter && { category: categoryFilter as FindingFilters["category"] }),
+    ...(severityFilter && { severity: severityFilter as FindingFilters["severity"] }),
+    ...(searchQuery && { search: searchQuery }),
+  };
 
-  if (authError || !user) {
-    redirect("/login");
-  }
+  const { data: findingsData, isLoading, error, refetch } = useFindings(id, filters);
 
-  // Verify user owns the inspection
-  const { data: inspection, error: inspectionError } = await supabase
-    .from("inspections")
-    .select("id, user_id, title")
-    .eq("id", id)
-    .single();
+  // Subscribe to Supabase Realtime — auto-refreshes when AI creates new findings
+  useFindingsUpdates(id);
 
-  if (inspectionError || !inspection) {
-    notFound();
-  }
+  const findings = findingsData?.data ?? [];
 
-  if (inspection.user_id !== user.id) {
-    notFound();
-  }
-
-  // Fetch findings
-  const { data: findings } = (await supabase
-    .from("findings")
-    .select(
-      "id, title, description, category, severity, location, cost_estimate, cost_min, cost_max, is_ai_generated, confidence, photo_id"
-    )
-    .eq("inspection_id", id)
-    .order("created_at", { ascending: false })) as { data: Finding[] | null };
-
-  const findingsList = findings || [];
-
-  // Calculate totals
-  const totalEstimatedCost = findingsList.reduce(
-    (sum, f) => sum + (f.cost_estimate || 0),
+  const totalEstimatedCost = findings.reduce(
+    (sum, f) => sum + (f.costEstimate ?? 0),
     0
   );
 
-  // Count by severity
   const severityCounts = {
-    critical: findingsList.filter((f) => f.severity?.toLowerCase() === "critical").length,
-    major: findingsList.filter((f) => f.severity?.toLowerCase() === "major").length,
-    minor: findingsList.filter((f) => f.severity?.toLowerCase() === "minor").length,
-    cosmetic: findingsList.filter((f) => f.severity?.toLowerCase() === "cosmetic").length,
-    info: findingsList.filter(
-      (f) => !f.severity || !["critical", "major", "minor", "cosmetic"].includes(f.severity.toLowerCase())
+    critical: findings.filter((f) => f.severity?.toLowerCase() === "critical").length,
+    major: findings.filter((f) => f.severity?.toLowerCase() === "major").length,
+    minor: findings.filter((f) => f.severity?.toLowerCase() === "minor").length,
+    cosmetic: findings.filter((f) => f.severity?.toLowerCase() === "cosmetic").length,
+    info: findings.filter(
+      (f) =>
+        !f.severity ||
+        !["critical", "major", "minor", "cosmetic"].includes(f.severity.toLowerCase())
     ).length,
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+          <p className="text-muted-foreground mt-2">Loading findings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Failed to load findings</p>
+          <Button variant="outline" onClick={() => refetch()} className="mt-4">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -162,7 +155,7 @@ export default async function FindingsPage({
             Findings
           </h1>
           <p className="text-muted-foreground">
-            {findingsList.length} findings · Total estimated cost:{" "}
+            {findings.length} findings · Total estimated cost:{" "}
             {formatCurrency(totalEstimatedCost)}
           </p>
         </div>
@@ -178,12 +171,18 @@ export default async function FindingsPage({
           <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search findings..."
             className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border py-2 pl-10 pr-4 focus:outline-none focus:ring-1"
           />
         </div>
         <div className="flex gap-2">
-          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+          >
             <option value="">All Categories</option>
             <option value="structural">Structural</option>
             <option value="electrical">Electrical</option>
@@ -195,7 +194,11 @@ export default async function FindingsPage({
             <option value="safety">Safety</option>
             <option value="cosmetic">Cosmetic</option>
           </select>
-          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1">
+          <select
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+            className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+          >
             <option value="">All Severities</option>
             <option value="critical">Critical</option>
             <option value="major">Major</option>
@@ -232,7 +235,7 @@ export default async function FindingsPage({
       </div>
 
       {/* Empty State */}
-      {findingsList.length === 0 ? (
+      {findings.length === 0 ? (
         <div className="border-border bg-card rounded-xl border border-dashed p-12 text-center">
           <AlertTriangle className="text-muted-foreground mx-auto h-12 w-12" />
           <h3 className="text-foreground mt-4 font-semibold">
@@ -249,7 +252,7 @@ export default async function FindingsPage({
       ) : (
         /* Findings List */
         <div className="space-y-4">
-          {findingsList.map((finding) => (
+          {findings.map((finding) => (
             <div
               key={finding.id}
               className="border-border bg-card hover:bg-muted/30 rounded-xl border p-6 shadow-sm transition-colors"
@@ -261,7 +264,7 @@ export default async function FindingsPage({
                     <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                       {formatCategory(finding.category)}
                     </span>
-                    {finding.is_ai_generated && (
+                    {finding.isAiGenerated && (
                       <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
                         <Sparkles className="h-3 w-3" />
                         AI Generated
@@ -282,7 +285,7 @@ export default async function FindingsPage({
                       <MapPin className="h-4 w-4" />
                       {finding.location || "No location specified"}
                     </span>
-                    {finding.photo_id && (
+                    {finding.photoId && (
                       <span className="flex items-center gap-1">
                         <Camera className="h-4 w-4" />
                         Photo attached
@@ -301,12 +304,12 @@ export default async function FindingsPage({
                   <div className="text-right">
                     <div className="text-foreground flex items-center gap-1 text-lg font-semibold">
                       <DollarSign className="h-5 w-5" />
-                      {formatCurrency(finding.cost_estimate)}
+                      {formatCurrency(finding.costEstimate)}
                     </div>
-                    {(finding.cost_min || finding.cost_max) && (
+                    {(finding.costMin || finding.costMax) && (
                       <p className="text-muted-foreground text-xs">
-                        Range: {formatCurrency(finding.cost_min)} -{" "}
-                        {formatCurrency(finding.cost_max)}
+                        Range: {formatCurrency(finding.costMin)} -{" "}
+                        {formatCurrency(finding.costMax)}
                       </p>
                     )}
                   </div>
