@@ -230,7 +230,10 @@ export default async function InspectionDetailPage({
           </div>
         </Link>
 
-        <div className="border-border bg-card flex items-center gap-4 rounded-xl border p-4">
+        <Link
+          href={`/inspections/${id}/voice-notes`}
+          className="border-border bg-card hover:bg-muted/50 flex items-center gap-4 rounded-xl border p-4 transition-colors"
+        >
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10">
             <Mic className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
@@ -240,7 +243,7 @@ export default async function InspectionDetailPage({
             </p>
             <p className="text-muted-foreground text-sm">Voice Notes</p>
           </div>
-        </div>
+        </Link>
 
         <Link
           href={`/inspections/${id}/findings`}
@@ -344,9 +347,12 @@ export default async function InspectionDetailPage({
               <p className="text-muted-foreground mt-1 text-sm">
                 Record observations and notes hands-free
               </p>
-              <button className="border-input bg-background text-foreground hover:bg-muted mt-4 rounded-lg border px-4 py-2 text-sm font-medium">
+              <Link
+                href={`/inspections/${id}/voice-notes`}
+                className="border-input bg-background text-foreground hover:bg-muted mt-4 rounded-lg border px-4 py-2 text-sm font-medium"
+              >
                 Start Recording
-              </button>
+              </Link>
             </div>
           </div>
         </div>
