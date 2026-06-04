@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     # HuggingFace
     huggingface_token: str = ""
 
-    # Redis
-    redis_url: str = "redis://localhost:6379"
+    # Upstash Redis (rate limiting — optional; set both vars to enable)
+    upstash_redis_rest_url: str = ""
+    upstash_redis_rest_token: str = ""
 
     # Model cache
     model_cache_dir: str = "./models"

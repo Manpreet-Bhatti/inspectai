@@ -12,6 +12,10 @@ supabase>=2.10.0
 # HTTP (still needed for ML service callbacks)
 httpx>=0.28.0
 
+# Upstash rate limiting (serverless Redis, pay-per-request — caps HF inference spend)
+upstash-ratelimit>=1.0.0
+upstash-redis>=1.0.0
+
 # Utils
 python-dotenv>=1.0.1
 pydantic>=2.10.0

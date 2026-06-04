@@ -9,6 +9,7 @@ from app.models.schemas import (
     TranscribeResponse,
     TranscriptionResult,
 )
+from app.services.rate_limiter import check_inference_rate_limit
 from app.services.speech_recognizer import get_speech_recognizer_service
 from app.services.supabase_client import get_supabase_client
 from app.services.text_processor import get_text_processor_service
@@ -31,6 +32,8 @@ async def transcribe_audio(
     """
     logger.info("Queuing voice note %s for transcription",
                 request.voice_note_id)
+
+    await check_inference_rate_limit(request.user_id)
 
     background_tasks.add_task(
         process_transcription,
@@ -57,6 +60,8 @@ async def transcribe_audio_sync(
     """
     logger.info("Transcribing voice note %s synchronously",
                 request.voice_note_id)
+
+    await check_inference_rate_limit(request.user_id)
 
     try:
         supabase = get_supabase_client()

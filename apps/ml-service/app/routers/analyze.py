@@ -11,6 +11,7 @@ from app.models.schemas import (
     PhotoAnalysisResult,
 )
 from app.services.image_analyzer import get_image_analyzer_service
+from app.services.rate_limiter import check_inference_rate_limit
 from app.services.supabase_client import get_supabase_client
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,8 @@ async def analyze_photo(
     the database, triggering Supabase Realtime updates.
     """
     logger.info("Queuing photo %s for analysis", request.photo_id)
+
+    await check_inference_rate_limit(request.user_id)
 
     background_tasks.add_task(
         process_photo_analysis,
@@ -55,6 +58,8 @@ async def analyze_photo_sync(
     Warning: This can be slow for large images.
     """
     logger.info("Analyzing photo %s synchronously", request.photo_id)
+
+    await check_inference_rate_limit(request.user_id)
 
     try:
         supabase = get_supabase_client()
