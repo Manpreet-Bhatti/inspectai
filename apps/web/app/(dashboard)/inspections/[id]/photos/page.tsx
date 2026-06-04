@@ -22,6 +22,7 @@ import {
   useDeletePhoto,
   useBatchAnalyzePhotos,
 } from "@/hooks/usePhotos";
+import { usePhotoAnalysisUpdates } from "@/hooks/useRealtime";
 import { PhotoUploader } from "@/components/photo/PhotoUploader";
 import { Button } from "@/components/ui/Button";
 
@@ -89,6 +90,9 @@ export default function PhotosPage({
   const { data: photosData, isLoading, error, refetch } = usePhotos(id);
   const deletePhotoMutation = useDeletePhoto();
   const analyzePhotosMutation = useBatchAnalyzePhotos();
+
+  // Subscribe to Supabase Realtime — auto-refreshes photos when AI analysis completes
+  usePhotoAnalysisUpdates(id);
 
   const photos = photosData?.data || [];
 
