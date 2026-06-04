@@ -164,7 +164,7 @@ export default async function InspectionDetailPage({
         .select("id, title, category, severity, location")
         .eq("inspection_id", id)
         .order("created_at", { ascending: false })
-        .limit(3) as { data: Finding[] | null },
+        .limit(3) as unknown as { data: Finding[] | null },
     ]);
 
   const photosCount = photosResult.count || 0;
@@ -250,7 +250,9 @@ export default async function InspectionDetailPage({
             <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-foreground text-2xl font-bold">{findingsCount}</p>
+            <p className="text-foreground text-2xl font-bold">
+              {findingsCount}
+            </p>
             <p className="text-muted-foreground text-sm">Findings</p>
           </div>
         </Link>

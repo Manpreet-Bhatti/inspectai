@@ -87,7 +87,9 @@ export default function NewInspectionPage() {
       const inspection = await response.json();
       router.push(`/inspections/${inspection.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create inspection");
+      setError(
+        err instanceof Error ? err.message : "Failed to create inspection"
+      );
       setIsSubmitting(false);
     }
   };
@@ -143,8 +145,8 @@ export default function NewInspectionPage() {
                 required
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="e.g., 123 Oak Street Inspection"
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                placeholder="e.g., 123 Pink Street Inspection"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -162,8 +164,8 @@ export default function NewInspectionPage() {
                 required
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="123 Oak Street"
-                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                placeholder="123 Pink Street"
+                className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
               />
             </div>
 
@@ -183,7 +185,7 @@ export default function NewInspectionPage() {
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="Springfield"
-                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 />
               </div>
               <div>
@@ -191,7 +193,7 @@ export default function NewInspectionPage() {
                   htmlFor="state"
                   className="text-foreground block text-sm font-medium"
                 >
-                  State
+                  State/Province
                 </label>
                 <input
                   type="text"
@@ -200,9 +202,9 @@ export default function NewInspectionPage() {
                   required
                   value={formData.state}
                   onChange={handleChange}
-                  placeholder="IL"
+                  placeholder="ON"
                   maxLength={2}
-                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 />
               </div>
               <div>
@@ -219,9 +221,9 @@ export default function NewInspectionPage() {
                   required
                   value={formData.zipCode}
                   onChange={handleChange}
-                  placeholder="62701"
+                  placeholder="L2C 1Q2"
                   maxLength={10}
-                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+                  className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
                 />
               </div>
             </div>
@@ -294,7 +296,7 @@ export default function NewInspectionPage() {
               value={formData.notes}
               onChange={handleChange}
               placeholder="Any additional details about the property or inspection requirements..."
-              className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-1"
+              className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:ring-1 focus:outline-none"
             />
           </div>
         </div>
