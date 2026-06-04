@@ -3,17 +3,8 @@ fastapi>=0.115.0
 uvicorn[standard]>=0.34.0
 python-multipart>=0.0.20
 
-# ML/AI - Core
-torch>=2.5.0
-transformers>=4.46.0
-Pillow>=11.0.0
-sentence-transformers>=3.3.0
-accelerate>=1.1.0
-
-# Audio processing
-openai-whisper>=20240930
-pydub>=0.25.1
-soundfile>=0.13.0
+# HuggingFace Inference Providers (serverless, pay-per-call — no local GPU/model loading)
+huggingface_hub[inference]>=0.27.0
 
 # Database & HTTP
 httpx>=0.28.0
