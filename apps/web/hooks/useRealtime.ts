@@ -2,20 +2,146 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 import { photoKeys } from "./usePhotos";
 import { findingKeys } from "./useFindings";
 
-interface PollingConfig {
-  interval?: number;
-  enabled?: boolean;
+/**
+ * Subscribes to Supabase Realtime for photo analysis completion events.
+ * Automatically invalidates React Query cache when a photo's processed_at is set.
+ */
+export function usePhotoAnalysisUpdates(
+  inspectionId: string | null,
+  onUpdate?: (photo: Record<string, unknown>) => void
+) {
+  const queryClient = useQueryClient();
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  useEffect(() => {
+    if (!inspectionId) return;
+
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`photos:${inspectionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "photos",
+          filter: `inspection_id=eq.${inspectionId}`,
+        },
+        (payload) => {
+          const photo = payload.new as Record<string, unknown>;
+          if (photo.processed_at) {
+            queryClient.invalidateQueries({
+              queryKey: photoKeys.detail(photo.id as string),
+            });
+            queryClient.invalidateQueries({
+              queryKey: photoKeys.list(inspectionId),
+            });
+            onUpdateRef.current?.(photo);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [inspectionId, queryClient]);
 }
 
 /**
- * Hook to poll for photo analysis results
+ * Subscribes to Supabase Realtime for new findings being inserted.
+ * Automatically invalidates React Query cache when a new finding arrives.
+ */
+export function useFindingsUpdates(
+  inspectionId: string | null,
+  onInsert?: (finding: Record<string, unknown>) => void
+) {
+  const queryClient = useQueryClient();
+  const onInsertRef = useRef(onInsert);
+  onInsertRef.current = onInsert;
+
+  useEffect(() => {
+    if (!inspectionId) return;
+
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`findings:${inspectionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "findings",
+          filter: `inspection_id=eq.${inspectionId}`,
+        },
+        (payload) => {
+          const finding = payload.new as Record<string, unknown>;
+          queryClient.invalidateQueries({
+            queryKey: findingKeys.lists(),
+          });
+          onInsertRef.current?.(finding);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [inspectionId, queryClient]);
+}
+
+/**
+ * Composes both photo and findings subscriptions for an inspection.
+ * Returns connection status and optional callbacks for each event type.
+ */
+export function useInspectionRealtime(
+  inspectionId: string | null,
+  callbacks?: {
+    onPhotoAnalyzed?: (photo: Record<string, unknown>) => void;
+    onFindingCreated?: (finding: Record<string, unknown>) => void;
+  }
+) {
+  const [photoUpdateCount, setPhotoUpdateCount] = useState(0);
+  const [findingInsertCount, setFindingInsertCount] = useState(0);
+
+  const handlePhotoUpdate = useCallback(
+    (photo: Record<string, unknown>) => {
+      setPhotoUpdateCount((n) => n + 1);
+      callbacks?.onPhotoAnalyzed?.(photo);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const handleFindingInsert = useCallback(
+    (finding: Record<string, unknown>) => {
+      setFindingInsertCount((n) => n + 1);
+      callbacks?.onFindingCreated?.(finding);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  usePhotoAnalysisUpdates(inspectionId, handlePhotoUpdate);
+  useFindingsUpdates(inspectionId, handleFindingInsert);
+
+  return { photoUpdateCount, findingInsertCount };
+}
+
+/**
+ * Polls for photo analysis completion. Useful as a fallback when Realtime
+ * is unavailable or for checking a specific photo after triggering analysis.
  */
 export function usePhotoAnalysisPolling(
   photoId: string | null,
-  config: PollingConfig = {}
+  config: { interval?: number; enabled?: boolean } = {}
 ) {
   const { interval = 2000, enabled = true } = config;
   const queryClient = useQueryClient();
@@ -59,84 +185,7 @@ export function usePhotoAnalysisPolling(
 }
 
 /**
- * Hook for Server-Sent Events (SSE) for real-time updates
- * Can be used when SSE endpoint is implemented
- */
-export function useRealtimeUpdates(inspectionId: string | null) {
-  const queryClient = useQueryClient();
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-
-  const connect = useCallback(() => {
-    if (!inspectionId) return;
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    const eventSource = new EventSource(
-      `/api/inspections/${inspectionId}/events`
-    );
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-
-    eventSource.onerror = () => {
-      setIsConnected(false);
-      setTimeout(connect, 5000);
-    };
-
-    eventSource.addEventListener("photo_analyzed", (event) => {
-      const data = JSON.parse(event.data);
-      queryClient.invalidateQueries({
-        queryKey: photoKeys.detail(data.photoId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: photoKeys.list(inspectionId),
-      });
-    });
-
-    eventSource.addEventListener("finding_created", (event) => {
-      const data = JSON.parse(event.data);
-      queryClient.invalidateQueries({
-        queryKey: findingKeys.list(inspectionId),
-      });
-      queryClient.setQueryData(
-        findingKeys.detail(data.findingId),
-        data.finding
-      );
-    });
-
-    eventSource.addEventListener("voice_transcribed", () => {
-      queryClient.invalidateQueries({
-        queryKey: ["voice-notes", inspectionId],
-      });
-    });
-
-    eventSourceRef.current = eventSource;
-  }, [inspectionId, queryClient]);
-
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-      setIsConnected(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // For now, SSE is not implemented, so don't connect
-    // connect();
-    // return disconnect;
-    return () => {};
-  }, [connect, disconnect]);
-
-  return { isConnected, connect, disconnect };
-}
-
-/**
- * Hook to handle optimistic updates with rollback
+ * Utility hook for optimistic updates with automatic rollback on failure.
  */
 export function useOptimisticUpdate<T>() {
   const queryClient = useQueryClient();
@@ -159,13 +208,10 @@ export function useOptimisticUpdate<T>() {
 
       try {
         const result = await mutationFn();
-
         queryClient.setQueryData(queryKey, result);
-
         return result;
       } catch (error) {
         queryClient.setQueryData(queryKey, previousValue);
-
         throw error;
       }
     },
