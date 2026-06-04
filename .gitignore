@@ -66,3 +66,5 @@ packages/database/prisma/*.db-journal
 .netlify
 
 supabase/.temp
+
+SPEC.md
