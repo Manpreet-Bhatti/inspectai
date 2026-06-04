@@ -6,9 +6,11 @@ python-multipart>=0.0.20
 # HuggingFace Inference Providers (serverless, pay-per-call — no local GPU/model loading)
 huggingface_hub[inference]>=0.27.0
 
-# Database & HTTP
+# Supabase Python SDK (PostgREST + Storage client)
+supabase>=2.10.0
+
+# HTTP (still needed for ML service callbacks)
 httpx>=0.28.0
-asyncpg>=0.30.0
 
 # Utils
 python-dotenv>=1.0.1
