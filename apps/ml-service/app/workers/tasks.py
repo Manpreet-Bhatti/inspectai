@@ -61,7 +61,7 @@ async def process_photo_task(
             },
         )
 
-        # Create findings
+        # Create findings and generate embeddings for each
         findings_created = []
         for finding in analysis.suggested_findings:
             result = await supabase.create_finding(
@@ -75,7 +75,11 @@ async def process_photo_task(
                     "confidence": finding.confidence,
                 }
             )
-            findings_created.append(result.get("id"))
+            finding_id = result.get("id")
+            findings_created.append(finding_id)
+            if finding_id:
+                embedding_text = f"{finding.title}. {finding.description}"
+                await generate_embeddings_task(finding_id, embedding_text)
 
         logger.info(
             f"Completed photo task {photo_id}: "
