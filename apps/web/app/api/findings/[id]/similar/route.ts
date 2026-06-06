@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { findSimilarFindings } from "@/lib/ml-client";
+import type { Tables } from "@/types/database";
 
-// TODO: Import ML service client for vector similarity search
-// import { mlServiceClient } from "@/lib/ml-service";
+type Finding = Tables<"findings">;
 
 /**
  * GET /api/findings/[id]/similar
- * Get similar findings using vector similarity search
+ * Find similar findings using pgvector similarity search via the ML service.
  */
 export async function GET(
   request: NextRequest,
@@ -14,50 +16,67 @@ export async function GET(
   try {
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "5");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "5"), 20);
+    const threshold = parseFloat(searchParams.get("threshold") || "0.7");
 
-    // TODO: Implement actual vector similarity search using pgvector
-    // 1. Get the finding's embedding
-    // 2. Search for similar findings using cosine similarity
-    // 3. Return top N similar findings
+    const supabase = await createClient();
 
-    const similarFindings = [
-      {
-        id: "similar-1",
-        title: "Water staining on bathroom ceiling",
-        description: "Similar water damage pattern observed",
-        severity: "MAJOR",
-        category: "STRUCTURAL",
-        similarity: 0.94,
-        inspectionId: "other-inspection-1",
-        inspectionTitle: "456 Maple Avenue Inspection",
-      },
-      {
-        id: "similar-2",
-        title: "Ceiling water damage from roof leak",
-        description: "Water infiltration through roof causing ceiling damage",
-        severity: "MAJOR",
-        category: "STRUCTURAL",
-        similarity: 0.89,
-        inspectionId: "other-inspection-2",
-        inspectionTitle: "789 Pine Road Inspection",
-      },
-      {
-        id: "similar-3",
-        title: "Plumbing leak causing ceiling stains",
-        description: "Upstairs bathroom leak affecting ceiling below",
-        severity: "MAJOR",
-        category: "PLUMBING",
-        similarity: 0.85,
-        inspectionId: "other-inspection-3",
-        inspectionTitle: "321 Elm Boulevard Inspection",
-      },
-    ];
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    return NextResponse.json({
-      findingId: id,
-      similar: similarFindings.slice(0, limit),
-    });
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Fetch the source finding to build query text
+    const { data: finding, error: findingError } = (await supabase
+      .from("findings")
+      .select("id, title, description, inspection_id")
+      .eq("id", id)
+      .single()) as {
+      data: Pick<Finding, "id" | "title" | "description" | "inspection_id"> | null;
+      error: Error | null;
+    };
+
+    if (findingError || !finding) {
+      return NextResponse.json({ error: "Finding not found" }, { status: 404 });
+    }
+
+    // Verify the user owns the inspection
+    const { data: inspection, error: inspectionError } = await supabase
+      .from("inspections")
+      .select("user_id")
+      .eq("id", finding.inspection_id)
+      .single() as { data: { user_id: string } | null; error: Error | null };
+
+    if (inspectionError || !inspection) {
+      return NextResponse.json({ error: "Inspection not found" }, { status: 404 });
+    }
+
+    if (inspection.user_id !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const queryText = `${finding.title}. ${finding.description}`;
+    const result = await findSimilarFindings(queryText, limit, threshold);
+
+    // Exclude the source finding from results
+    const similar = result.findings
+      .filter((f) => f.id !== id)
+      .map((f) => ({
+        id: f.id,
+        inspectionId: f.inspection_id,
+        title: f.title,
+        description: f.description,
+        category: f.category,
+        severity: f.severity,
+        costEstimate: f.cost_estimate,
+        similarity: f.similarity,
+      }));
+
+    return NextResponse.json({ findingId: id, similar });
   } catch (error) {
     console.error("Error finding similar findings:", error);
     return NextResponse.json(

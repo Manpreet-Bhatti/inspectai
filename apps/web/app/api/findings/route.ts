@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { generateEmbedding } from "@/lib/ml-client";
 import type { Database, Tables, TablesInsert } from "@/types/database";
 
 type Finding = Tables<"findings">;
@@ -234,6 +235,14 @@ export async function POST(request: NextRequest) {
       createdAt: finding.created_at,
       updatedAt: finding.updated_at,
     };
+
+    // Fire-and-forget: generate embedding in the background so the response
+    // is not delayed. Failures here are non-fatal — embeddings can be
+    // backfilled later via the /embeddings/batch ML endpoint.
+    const embeddingText = `${finding.title}. ${finding.description}`;
+    generateEmbedding(embeddingText, finding.id).catch((err) =>
+      console.error("Embedding generation failed for finding %s: %o", finding.id, err)
+    );
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
