@@ -18,6 +18,7 @@ import {
 import { useFindings } from "@/hooks/useFindings";
 import { useFindingsUpdates } from "@/hooks/useRealtime";
 import { Button } from "@/components/ui/Button";
+import { SimilarFindingsPanel } from "@/components/finding/SimilarFindings";
 import type { FindingFilters } from "@/types";
 
 function getSeverityBadge(severity: string | null | undefined) {
@@ -82,6 +83,7 @@ export default function FindingsPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
+  const [expandedSimilar, setExpandedSimilar] = useState<string | null>(null);
 
   const filters: FindingFilters = {
     ...(categoryFilter && { category: categoryFilter as FindingFilters["category"] }),
@@ -314,11 +316,31 @@ export default function FindingsPage({
                     )}
                   </div>
 
+                  <button
+                    onClick={() =>
+                      setExpandedSimilar(
+                        expandedSimilar === finding.id ? null : finding.id
+                      )
+                    }
+                    className={`rounded-lg p-2 transition-colors ${
+                      expandedSimilar === finding.id
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                    title="Show similar findings"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </button>
+
                   <button className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2">
                     <MoreVertical className="h-4 w-4" />
                   </button>
                 </div>
               </div>
+
+              {expandedSimilar === finding.id && (
+                <SimilarFindingsPanel findingId={finding.id} />
+              )}
             </div>
           ))}
         </div>
