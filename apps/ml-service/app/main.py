@@ -10,8 +10,9 @@ HuggingFace Inference Providers (serverless, CPU-only, pay-per-call):
 
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 from app.config import get_settings, MODELS
 from app.models.schemas import HealthResponse
 from app.routers import (
@@ -26,6 +27,14 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def require_api_key(key: str = Security(_api_key_header)) -> None:
+    settings = get_settings()
+    if settings.api_key and key != settings.api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
 
 
 @asynccontextmanager
@@ -55,10 +64,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(analyze_router)
-app.include_router(transcribe_router)
-app.include_router(embeddings_router)
-app.include_router(costs_router)
+_auth = [Depends(require_api_key)]
+app.include_router(analyze_router, dependencies=_auth)
+app.include_router(transcribe_router, dependencies=_auth)
+app.include_router(embeddings_router, dependencies=_auth)
+app.include_router(costs_router, dependencies=_auth)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])
