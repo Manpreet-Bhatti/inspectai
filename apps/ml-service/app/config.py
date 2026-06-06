@@ -1,6 +1,7 @@
 """Configuration settings for the ML service application."""
 
 from functools import lru_cache
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -18,6 +19,9 @@ class Settings(BaseSettings):
     upstash_redis_rest_url: str = ""
     upstash_redis_rest_token: str = ""
 
+    # API key for securing ML service endpoints (required in production)
+    api_key: str = ""
+
     # Model cache
     model_cache_dir: str = "./models"
 
@@ -25,8 +29,15 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
 
-    # CORS
+    # CORS — accepts a comma-separated string or JSON array
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     class Config:
         """Specifies .env files as the source for environment variables."""
