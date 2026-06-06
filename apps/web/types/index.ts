@@ -150,13 +150,13 @@ export interface Finding {
 
 export interface SimilarFinding {
   id: string;
+  inspectionId: string;
   title: string;
   description: string;
-  severity: Severity;
-  category: FindingCategory;
+  category: string;
+  severity: string;
+  costEstimate: number | null;
   similarity: number;
-  inspectionId: string;
-  inspectionTitle: string;
 }
 
 // Report types
