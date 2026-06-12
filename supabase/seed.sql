@@ -18,7 +18,8 @@ begin
   select id into v_user_id from profiles order by created_at limit 1;
 
   if v_user_id is null then
-    raise exception 'No users found. Create an account via the app first, then re-run seed.sql.';
+    raise notice 'No users found — skipping seed. Create an account via the app, then run: supabase db query --linked --file supabase/seed.sql';
+    return;
   end if;
 
   -- Seed inspection for historical findings
