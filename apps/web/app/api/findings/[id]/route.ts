@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { generateEmbedding } from "@/lib/ml-client";
 import type { Database, Tables, TablesUpdate } from "@/types/database";
 
 type Finding = Tables<"findings">;
@@ -261,6 +262,14 @@ export async function PATCH(
       createdAt: finding.created_at,
       updatedAt: finding.updated_at,
     };
+
+    // Re-embed when text content changed so similarity index stays fresh.
+    if (body.title !== undefined || body.description !== undefined) {
+      const embeddingText = `${finding.title}. ${finding.description}`;
+      generateEmbedding(embeddingText, finding.id).catch((err) =>
+        console.error("Re-embedding failed for finding %s: %o", finding.id, err)
+      );
+    }
 
     return NextResponse.json(response);
   } catch (error) {
