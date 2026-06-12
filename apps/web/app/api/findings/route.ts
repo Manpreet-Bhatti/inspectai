@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     const inspectionId = searchParams.get("inspectionId");
     const severity = searchParams.get("severity") as Severity | null;
     const category = searchParams.get("category") as FindingCategory | null;
+    const search = searchParams.get("search");
 
     if (!inspectionId) {
       return NextResponse.json(
@@ -76,6 +77,10 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       query = query.eq("category", category);
+    }
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
     const { data: findings, error } = await query;

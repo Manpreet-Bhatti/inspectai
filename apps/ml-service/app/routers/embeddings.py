@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import (
+    BackfillEmbeddingsResponse,
     EmbeddingRequest,
     EmbeddingResponse,
     SimilarFindingRequest,
@@ -141,3 +142,45 @@ async def find_similar_findings(
     except Exception as e:
         logger.error("Similar findings search failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/backfill", response_model=BackfillEmbeddingsResponse)
+async def backfill_embeddings(limit: int = 500) -> BackfillEmbeddingsResponse:
+    """Generate embeddings for all findings that currently have none.
+
+    Run this once after loading seed data or importing historical findings.
+    Safe to call multiple times — only processes findings where embedding IS NULL.
+    """
+    if limit < 1 or limit > 2000:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 2000")
+
+    embedding_service = get_embedding_service()
+    supabase = get_supabase_client()
+
+    findings = await supabase.get_findings_without_embeddings(limit=limit)
+    logger.info("Backfilling embeddings for %d findings", len(findings))
+
+    processed = 0
+    failed = 0
+    skipped = 0
+
+    for finding in findings:
+        finding_id = finding.get("id")
+        title = finding.get("title", "")
+        description = finding.get("description", "")
+
+        if not finding_id or not (title or description):
+            skipped += 1
+            continue
+
+        try:
+            text = f"{title}. {description}".strip()
+            embedding = await embedding_service.generate_embedding(text)
+            await supabase.update_finding_embedding(finding_id, embedding)
+            processed += 1
+        except Exception as e:
+            logger.error("Backfill failed for finding %s: %s", finding_id, e)
+            failed += 1
+
+    logger.info("Backfill complete: %d processed, %d failed, %d skipped", processed, failed, skipped)
+    return BackfillEmbeddingsResponse(processed=processed, failed=failed, skipped=skipped)

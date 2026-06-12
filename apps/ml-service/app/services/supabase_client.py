@@ -164,6 +164,17 @@ class SupabaseClient:
     # pgvector similarity search
     # ------------------------------------------------------------------
 
+    async def get_findings_without_embeddings(self, limit: int = 500) -> list[dict[str, Any]]:
+        """Fetch findings that have no embedding yet (for backfill)."""
+        response = await asyncio.to_thread(
+            lambda: self._client.table("findings")
+            .select("id, title, description")
+            .is_("embedding", "null")
+            .limit(limit)
+            .execute()
+        )
+        return response.data
+
     async def search_similar_findings(
         self, embedding: list[float], threshold: float = 0.7, limit: int = 5
     ) -> list[dict[str, Any]]:
