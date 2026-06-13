@@ -110,6 +110,41 @@ export async function findSimilarFindings(
   );
 }
 
+export interface TranscribeResponse {
+  status: string;
+  voice_note_id: string;
+  message: string | null;
+}
+
+/**
+ * Queue a voice note for transcription + summarization.
+ * The ML service downloads the audio from Supabase Storage, runs Whisper,
+ * generates a BART summary, and writes both back to the voice_notes row.
+ * Supabase Realtime then pushes the update to the frontend.
+ */
+export async function transcribeAudio(
+  voiceNoteId: string,
+  storagePath: string,
+  inspectionId: string,
+  userId?: string,
+  options?: MlClientOptions
+): Promise<TranscribeResponse> {
+  return mlFetch<TranscribeResponse>(
+    "/transcribe",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        voice_note_id: voiceNoteId,
+        storage_path: storagePath,
+        inspection_id: inspectionId,
+        user_id: userId ?? null,
+        callback_url: null,
+      }),
+    },
+    options
+  );
+}
+
 /**
  * Generate and optionally store an embedding for a finding.
  * Pass findingId to persist the embedding in the database.
