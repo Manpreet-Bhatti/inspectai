@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -69,6 +69,34 @@ export function FindingForm({
 
   const [form, setForm] = useState<FindingFormData>(() => emptyForm(finding));
   const [errors, setErrors] = useState<Partial<Record<keyof FindingFormData, string>>>({});
+  const [estimating, setEstimating] = useState(false);
+
+  async function handleAutoEstimate() {
+    setEstimating(true);
+    try {
+      const res = await fetch("/api/costs/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: form.category,
+          severity: form.severity,
+          description: form.description || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("estimation failed");
+      const data = await res.json();
+      setForm((prev) => ({
+        ...prev,
+        costEstimate: Math.round(data.estimate),
+        costMin: Math.round(data.min_cost),
+        costMax: Math.round(data.max_cost),
+      }));
+    } catch {
+      // silent — user can still enter manually
+    } finally {
+      setEstimating(false);
+    }
+  }
 
   // Reset when switching between create / edit targets
   useEffect(() => {
@@ -194,9 +222,24 @@ export function FindingForm({
 
           {/* Cost fields */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Cost Estimate ($)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">
+                Cost Estimate ($)
+              </label>
+              <button
+                type="button"
+                onClick={handleAutoEstimate}
+                disabled={estimating}
+                className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                {estimating ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                Auto-estimate
+              </button>
+            </div>
             <div className="grid grid-cols-3 gap-3">
               {(
                 [
