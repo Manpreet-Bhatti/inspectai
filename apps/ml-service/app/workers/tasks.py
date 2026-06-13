@@ -7,6 +7,7 @@ with a task queue like Celery for production workloads.
 import logging
 
 from typing import Any
+from app.services.cost_estimator import get_cost_estimator_service
 from app.services.image_analyzer import get_image_analyzer_service
 from app.services.supabase_client import get_supabase_client
 from app.services.speech_recognizer import get_speech_recognizer_service
@@ -61,8 +62,9 @@ async def process_photo_task(
             },
         )
 
-        # Create findings and generate embeddings for each
+        # Create findings, then estimate costs and generate embeddings for each
         findings_created = []
+        cost_service = get_cost_estimator_service()
         for finding in analysis.suggested_findings:
             result = await supabase.create_finding(
                 {
@@ -78,6 +80,20 @@ async def process_photo_task(
             finding_id = result.get("id")
             findings_created.append(finding_id)
             if finding_id:
+                try:
+                    cost = await cost_service.estimate_cost(
+                        category=finding.category,
+                        severity=finding.severity,
+                        description=finding.description,
+                    )
+                    await supabase.update_finding_cost(
+                        finding_id, cost.estimate, cost.min_cost, cost.max_cost
+                    )
+                except Exception as cost_err:
+                    logger.warning(
+                        "Cost estimation failed for finding %s: %s", finding_id, cost_err
+                    )
+
                 embedding_text = f"{finding.title}. {finding.description}"
                 await generate_embeddings_task(finding_id, embedding_text)
 
