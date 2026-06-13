@@ -150,6 +150,28 @@ class SupabaseClient:
         logger.info("Created finding: %s", created.get("id", "unknown"))
         return created
 
+    async def update_finding_cost(
+        self,
+        finding_id: str,
+        cost_estimate: float,
+        cost_min: float,
+        cost_max: float,
+    ) -> None:
+        """Update a finding with cost estimates."""
+        await asyncio.to_thread(
+            lambda: self._client.table("findings")
+            .update(
+                {
+                    "cost_estimate": cost_estimate,
+                    "cost_min": cost_min,
+                    "cost_max": cost_max,
+                }
+            )
+            .eq("id", finding_id)
+            .execute()
+        )
+        logger.info("Updated finding %s with cost estimates", finding_id)
+
     async def update_finding_embedding(self, finding_id: str, embedding: list[float]) -> None:
         """Update a finding with its vector embedding."""
         await asyncio.to_thread(
