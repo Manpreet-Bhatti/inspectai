@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateEmbedding } from "@/lib/ml-client";
+import { estimateCost, generateEmbedding } from "@/lib/ml-client";
+import { createAdminClient } from "@/lib/supabase/server";
 import type { Database, Tables, TablesInsert } from "@/types/database";
 
 type Finding = Tables<"findings">;
@@ -248,6 +249,25 @@ export async function POST(request: NextRequest) {
     generateEmbedding(embeddingText, finding.id).catch((err) =>
       console.error("Embedding generation failed for finding %s: %o", finding.id, err)
     );
+
+    // Fire-and-forget: auto-estimate costs when not manually provided.
+    if (!body.costEstimate && !body.costMin && !body.costMax) {
+      estimateCost(finding.category, finding.severity, finding.description ?? undefined)
+        .then(async (cost) => {
+          const admin = await createAdminClient();
+          await admin
+            .from("findings")
+            .update({
+              cost_estimate: cost.estimate,
+              cost_min: cost.min_cost,
+              cost_max: cost.max_cost,
+            } as never)
+            .eq("id", finding.id);
+        })
+        .catch((err) =>
+          console.error("Cost estimation failed for finding %s: %o", finding.id, err)
+        );
+    }
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {
