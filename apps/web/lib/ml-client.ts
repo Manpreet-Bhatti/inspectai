@@ -37,6 +37,15 @@ async function mlFetch<T>(
   return response.json() as Promise<T>;
 }
 
+export interface CostEstimateResponse {
+  estimate: number;
+  min_cost: number;
+  max_cost: number;
+  category: string;
+  severity: string;
+  confidence: number;
+}
+
 export interface SimilarFindingResult {
   id: string;
   inspection_id: string;
@@ -57,6 +66,29 @@ export interface EmbeddingResponse {
   embedding: number[];
   dimensions: number;
   model: string;
+}
+
+/**
+ * Estimate repair cost for a finding by category and severity.
+ */
+export async function estimateCost(
+  category: string,
+  severity: string,
+  description?: string,
+  options?: MlClientOptions
+): Promise<CostEstimateResponse> {
+  return mlFetch<CostEstimateResponse>(
+    "/costs/estimate",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        category: category.toLowerCase(),
+        severity: severity.toLowerCase(),
+        description: description ?? null,
+      }),
+    },
+    options
+  );
 }
 
 /**
