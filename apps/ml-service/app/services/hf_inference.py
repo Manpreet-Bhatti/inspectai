@@ -68,3 +68,19 @@ def embed_text(text: str, model_id: str) -> list[float]:
     if flat and isinstance(flat[0], list):
         flat = flat[0]
     return flat
+
+
+def classify_text_zero_shot(
+    text: str, model_id: str, labels: list[str]
+) -> list[dict]:
+    """Zero-shot text classification using a textual entailment model (e.g. MNLI).
+
+    Returns [{label, score}, ...] sorted by score descending.
+    """
+    result = get_client().zero_shot_classification(
+        text, candidate_labels=labels, model=model_id
+    )
+    return [
+        {"label": lbl, "score": float(score)}
+        for lbl, score in zip(result.labels, result.scores)
+    ]

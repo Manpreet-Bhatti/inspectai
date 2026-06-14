@@ -12,6 +12,7 @@ from app.models.schemas import (
     PhotoCategory,
 )
 import app.services.hf_inference as hf_inference
+from app.services.severity_classifier import get_severity_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class ImageAnalyzerService:
         objects = await self._detect_objects(image_bytes)
         condition, confidence = await self._classify_condition(image_bytes)
         category = self._determine_category(objects, caption)
-        findings = self._suggest_findings(caption, objects, condition, confidence)
+        findings = await self._suggest_findings(caption, objects, condition, confidence)
 
         return ImageAnalysis(
             caption=caption,
@@ -137,7 +138,7 @@ class ImageAnalyzerService:
 
         return "other"
 
-    def _suggest_findings(
+    async def _suggest_findings(
         self,
         caption: str,
         objects: list[DetectedObject],
@@ -147,45 +148,55 @@ class ImageAnalyzerService:
         """Suggest potential findings based on analysis results."""
         findings = []
         caption_lower = caption.lower()
+        classifier = get_severity_classifier()
 
         if condition in ["poor condition", "damaged"] and confidence > 0.5:
             for category, keywords in self.ISSUE_KEYWORDS.items():
                 for keyword in keywords:
                     if keyword in caption_lower:
-                        severity = self._determine_severity(condition, confidence)
+                        title = f"Potential {category} issue detected"
+                        description = (
+                            f"AI analysis detected possible {keyword}-related issue. {caption}"
+                        )
+                        severity, sev_conf = await classifier.classify(
+                            title=title,
+                            description=description,
+                            category=category,
+                            image_condition=condition,
+                            image_confidence=confidence,
+                        )
                         findings.append(
                             Finding(
-                                title=f"Potential {category} issue detected",
-                                description=f"AI analysis detected possible {keyword}-related issue. {caption}",
+                                title=title,
+                                description=description,
                                 category=category,  # type: ignore
-                                severity=severity,
-                                confidence=confidence,
+                                severity=severity,  # type: ignore
+                                confidence=min(confidence, sev_conf),
                             )
                         )
                         break
 
         if not findings and condition == "damaged" and confidence > 0.6:
+            title = "Damage detected"
+            description = f"AI analysis indicates damage in this area. {caption}"
+            severity, sev_conf = await classifier.classify(
+                title=title,
+                description=description,
+                category="cosmetic",
+                image_condition=condition,
+                image_confidence=confidence,
+            )
             findings.append(
                 Finding(
-                    title="Damage detected",
-                    description=f"AI analysis indicates damage in this area. {caption}",
+                    title=title,
+                    description=description,
                     category="cosmetic",
-                    severity="minor",
-                    confidence=confidence,
+                    severity=severity,  # type: ignore
+                    confidence=min(confidence, sev_conf),
                 )
             )
 
         return findings[:3]
-
-    def _determine_severity(self, condition: str, confidence: float) -> str:
-        if condition == "damaged" and confidence > 0.8:
-            return "major"
-        elif condition == "damaged":
-            return "minor"
-        elif condition == "poor condition" and confidence > 0.7:
-            return "minor"
-        else:
-            return "cosmetic"
 
 
 @lru_cache(maxsize=1)

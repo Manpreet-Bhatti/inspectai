@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Wand2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -70,6 +70,30 @@ export function FindingForm({
   const [form, setForm] = useState<FindingFormData>(() => emptyForm(finding));
   const [errors, setErrors] = useState<Partial<Record<keyof FindingFormData, string>>>({});
   const [estimating, setEstimating] = useState(false);
+  const [classifying, setClassifying] = useState(false);
+
+  async function handleAutoClassify() {
+    if (!form.title.trim() || !form.description.trim()) return;
+    setClassifying(true);
+    try {
+      const res = await fetch("/api/findings/classify-severity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          category: form.category,
+        }),
+      });
+      if (!res.ok) throw new Error("classification failed");
+      const data = await res.json();
+      set("severity", (data.severity as string).toUpperCase() as Severity);
+    } catch {
+      // silent — user keeps current selection
+    } finally {
+      setClassifying(false);
+    }
+  }
 
   async function handleAutoEstimate() {
     setEstimating(true);
@@ -194,7 +218,22 @@ export function FindingForm({
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Severity</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Severity</label>
+                <button
+                  type="button"
+                  onClick={handleAutoClassify}
+                  disabled={classifying || !form.title.trim() || !form.description.trim()}
+                  className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium transition-colors disabled:opacity-50"
+                >
+                  {classifying ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-3 w-3" />
+                  )}
+                  Auto-classify
+                </button>
+              </div>
               <select
                 value={form.severity}
                 onChange={(e) => set("severity", e.target.value as Severity)}

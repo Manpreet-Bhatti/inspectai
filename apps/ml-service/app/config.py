@@ -81,6 +81,17 @@ MODELS = {
         "task": "feature-extraction",
         "dimensions": 384,
     },
+    "severity_classifier": {
+        "model_id": "facebook/bart-large-mnli",
+        "task": "zero-shot-classification",
+        "severity_hypotheses": {
+            "critical": "This is a life-threatening safety hazard or critical structural failure requiring immediate repair",
+            "major": "This is a significant defect causing functional impairment that requires urgent professional repair",
+            "minor": "This is a defect that requires repair but does not pose an immediate safety risk",
+            "cosmetic": "This is a surface-level cosmetic imperfection with no functional or safety impact",
+            "info": "This is an informational observation that requires no action",
+        },
+    },
 }
 
 # Finding categories for property inspections

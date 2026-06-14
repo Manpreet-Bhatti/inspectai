@@ -19,6 +19,7 @@ from app.routers import (
     analyze_router,
     costs_router,
     embeddings_router,
+    severity_router,
     transcribe_router,
 )
 
@@ -69,6 +70,7 @@ app.include_router(analyze_router, dependencies=_auth)
 app.include_router(transcribe_router, dependencies=_auth)
 app.include_router(embeddings_router, dependencies=_auth)
 app.include_router(costs_router, dependencies=_auth)
+app.include_router(severity_router, dependencies=_auth)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])
@@ -85,6 +87,7 @@ async def health_check() -> HealthResponse:
         "speech_recognition": hf_ready,
         "summarization": hf_ready,
         "embeddings": hf_ready,
+        "severity_classifier": hf_ready,
     }
 
     status = "healthy" if hf_ready and supabase_ready else "unhealthy"
