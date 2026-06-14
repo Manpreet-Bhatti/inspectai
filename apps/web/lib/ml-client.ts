@@ -145,6 +145,40 @@ export async function transcribeAudio(
   );
 }
 
+export interface SeverityClassifyResponse {
+  severity: string;
+  confidence: number;
+  method: string;
+}
+
+/**
+ * Classify the severity of a finding using zero-shot NLP.
+ * Optionally pass image condition data from a prior photo analysis.
+ */
+export async function classifySeverity(
+  title: string,
+  description: string,
+  category: string,
+  imageCondition?: string,
+  imageConfidence?: number,
+  options?: MlClientOptions
+): Promise<SeverityClassifyResponse> {
+  return mlFetch<SeverityClassifyResponse>(
+    "/classify/severity",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        description,
+        category: category.toLowerCase(),
+        image_condition: imageCondition ?? null,
+        image_confidence: imageConfidence ?? null,
+      }),
+    },
+    options
+  );
+}
+
 /**
  * Generate and optionally store an embedding for a finding.
  * Pass findingId to persist the embedding in the database.
