@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useUploadVoiceNote, useTranscribeVoiceNote } from "@/hooks/useVoiceNotes";
+import { offlineQueue } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
 import type { VoiceNote } from "@/types";
 
@@ -209,6 +210,22 @@ export function VoiceRecorder({
     }
 
     setRecorderState("uploading");
+
+    if (!navigator.onLine) {
+      await offlineQueue.addVoiceNote({
+        inspectionId,
+        blob: blobRef.current,
+        duration,
+      });
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+      setRecorderState("success");
+      setTimeout(() => onClose?.(), 1500);
+      return;
+    }
+
     try {
       const voiceNote = await uploadMutation.mutateAsync({
         inspectionId,
