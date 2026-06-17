@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useUploadPhotos } from "@/hooks/usePhotos";
+import { offlineQueue } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
 import type { PhotoCategory } from "@/types";
 
@@ -145,6 +146,27 @@ export function PhotoUploader({
     if (files.length === 0) return;
 
     setUploadStatus({ status: "uploading" });
+
+    if (!navigator.onLine) {
+      await Promise.all(
+        files.map((f) =>
+          offlineQueue.addPhoto({
+            inspectionId,
+            file: f.file,
+            category,
+            location: location || undefined,
+          })
+        )
+      );
+      setUploadStatus({
+        status: "success",
+        message: `${files.length} photo(s) queued — will upload when online`,
+      });
+      files.forEach((f) => URL.revokeObjectURL(f.preview));
+      setFiles([]);
+      setTimeout(() => onUploadComplete?.(), 1500);
+      return;
+    }
 
     try {
       await uploadMutation.mutateAsync({
