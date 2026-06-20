@@ -28,6 +28,21 @@ type InspectionWithCounts = {
   findingsCount: number;
 };
 
+type InspectionRow = {
+  id: string;
+  title: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  property_type: string | null;
+  status: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+  photos: [{ count: number }] | null;
+  findings: [{ count: number }] | null;
+};
+
 function getStatusBadge(status: string) {
   switch (status) {
     case "completed":
@@ -90,48 +105,32 @@ export default async function InspectionsPage() {
     redirect("/login");
   }
 
-  // Fetch inspections
-  const { data: inspections, count } = (await supabase
+  const { data: rawInspections, count } = (await supabase
     .from("inspections")
-    .select("id, title, address, city, state, zip_code, property_type, status, created_at, completed_at", { count: "exact" })
+    .select(
+      "id, title, address, city, state, zip_code, property_type, status, created_at, completed_at, photos(count), findings(count)",
+      { count: "exact" }
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })) as {
-    data: {
-      id: string;
-      title: string;
-      address: string;
-      city: string;
-      state: string;
-      zip_code: string;
-      property_type: string | null;
-      status: string | null;
-      created_at: string | null;
-      completed_at: string | null;
-    }[] | null;
+    data: InspectionRow[] | null;
     count: number | null;
   };
 
-  // Get counts for each inspection
-  const inspectionsWithCounts: InspectionWithCounts[] = await Promise.all(
-    (inspections || []).map(async (inspection) => {
-      const [photosResult, findingsResult] = await Promise.all([
-        supabase
-          .from("photos")
-          .select("*", { count: "exact", head: true })
-          .eq("inspection_id", inspection.id),
-        supabase
-          .from("findings")
-          .select("*", { count: "exact", head: true })
-          .eq("inspection_id", inspection.id),
-      ]);
-
-      return {
-        ...inspection,
-        photosCount: photosResult.count || 0,
-        findingsCount: findingsResult.count || 0,
-      };
-    })
-  );
+  const inspectionsWithCounts: InspectionWithCounts[] = (rawInspections || []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    address: r.address,
+    city: r.city,
+    state: r.state,
+    zip_code: r.zip_code,
+    property_type: r.property_type,
+    status: r.status,
+    created_at: r.created_at,
+    completed_at: r.completed_at,
+    photosCount: r.photos?.[0]?.count ?? 0,
+    findingsCount: r.findings?.[0]?.count ?? 0,
+  }));
 
   return (
     <div className="space-y-6">
