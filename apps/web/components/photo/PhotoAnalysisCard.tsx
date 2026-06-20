@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import {
   Sparkles,
   Loader2,
@@ -114,10 +115,13 @@ export function PhotoAnalysisCard({
       <div className="bg-muted relative aspect-video overflow-hidden">
         {photo.originalUrl || photo.thumbnailUrl ? (
           <>
-            <img
-              src={photo.thumbnailUrl || photo.originalUrl}
+            <Image
+              src={(photo.thumbnailUrl || photo.originalUrl)!}
               alt={photo.fileName}
-              className="h-full w-full object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="object-cover"
+              loading="lazy"
             />
             {hasObjects && showBoxes && (
               <BoundingBoxOverlay
