@@ -46,6 +46,11 @@ export default function RootLayout({
         className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
+        <div
+          id="popover-root"
+          className="pointer-events-none fixed inset-0"
+          style={{ zIndex: 9999 }}
+        />
       </body>
     </html>
   );

@@ -3,7 +3,6 @@ import {
   Plus,
   Search,
   Filter,
-  MoreVertical,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { InspectionActionsDropdown } from "@/components/inspection/InspectionActionsDropdown";
 
 type InspectionWithCounts = {
   id: string;
@@ -117,7 +117,9 @@ export default async function InspectionsPage() {
     count: number | null;
   };
 
-  const inspectionsWithCounts: InspectionWithCounts[] = (rawInspections || []).map((r) => ({
+  const inspectionsWithCounts: InspectionWithCounts[] = (
+    rawInspections || []
+  ).map((r) => ({
     id: r.id,
     title: r.title,
     address: r.address,
@@ -146,7 +148,7 @@ export default async function InspectionsPage() {
         </div>
         <Link
           href="/inspections/new"
-          className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
         >
           <Plus className="h-4 w-4" />
           New Inspection
@@ -156,22 +158,22 @@ export default async function InspectionsPage() {
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search inspections..."
-            className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border py-2 pl-10 pr-4 focus:outline-none focus:ring-1"
+            className="border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary w-full rounded-lg border py-2 pr-4 pl-10 focus:ring-1 focus:outline-none"
           />
         </div>
         <div className="flex gap-2">
-          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1">
+          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:outline-none">
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
             <option value="in_progress">In Progress</option>
             <option value="review">Review</option>
             <option value="completed">Completed</option>
           </select>
-          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1">
+          <select className="border-input bg-background text-foreground focus:border-primary focus:ring-primary rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:outline-none">
             <option value="">All Property Types</option>
             <option value="single_family">Single Family</option>
             <option value="multi_family">Multi Family</option>
@@ -214,25 +216,25 @@ export default async function InspectionsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-border bg-muted/50 border-b">
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Property
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Type
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Status
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Photos
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Findings
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-left text-xs font-medium tracking-wider uppercase">
                       Date
                     </th>
-                    <th className="text-muted-foreground px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                    <th className="text-muted-foreground px-6 py-3 text-right text-xs font-medium tracking-wider uppercase">
                       Actions
                     </th>
                   </tr>
@@ -252,7 +254,8 @@ export default async function InspectionsPage() {
                             {inspection.title}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            {inspection.address}, {inspection.city}, {inspection.state} {inspection.zip_code}
+                            {inspection.address}, {inspection.city},{" "}
+                            {inspection.state} {inspection.zip_code}
                           </p>
                         </Link>
                       </td>
@@ -278,9 +281,7 @@ export default async function InspectionsPage() {
                         {formatDate(inspection.created_at)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-2">
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
+                        <InspectionActionsDropdown inspection={inspection} />
                       </td>
                     </tr>
                   ))}
@@ -291,7 +292,8 @@ export default async function InspectionsPage() {
             {/* Pagination */}
             <div className="border-border flex items-center justify-between border-t px-6 py-4">
               <p className="text-muted-foreground text-sm">
-                Showing {inspectionsWithCounts.length} of {count || 0} inspections
+                Showing {inspectionsWithCounts.length} of {count || 0}{" "}
+                inspections
               </p>
               <div className="flex gap-2">
                 <button
