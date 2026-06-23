@@ -216,7 +216,7 @@ function Header() {
                 <span className="sr-only">Notifications</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Notifications</TooltipContent>
+            <TooltipContent side="bottom" align="end">Notifications</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
