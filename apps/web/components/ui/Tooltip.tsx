@@ -150,21 +150,57 @@ TooltipTrigger.displayName = "TooltipTrigger";
 
 interface TooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
   side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
   sideOffset?: number;
 }
 
 const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
-  ({ className, side = "top", sideOffset = 4, children, ...props }, ref) => {
+  (
+    {
+      className,
+      side = "top",
+      align = "center",
+      sideOffset = 4,
+      children,
+      ...props
+    },
+    ref
+  ) => {
     const { open } = useTooltipContext();
 
     if (!open) return null;
 
-    const sideStyles = {
-      top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
-      bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
-      left: "right-full top-1/2 -translate-y-1/2 mr-2",
-      right: "left-full top-1/2 -translate-y-1/2 ml-2",
+    const sideClasses = {
+      top: "bottom-full mb-2",
+      bottom: "top-full mt-2",
+      left: "right-full mr-2",
+      right: "left-full ml-2",
     };
+
+    const alignClasses: Record<typeof side, Record<typeof align, string>> = {
+      top: {
+        start: "left-0",
+        center: "left-1/2 -translate-x-1/2",
+        end: "right-0",
+      },
+      bottom: {
+        start: "left-0",
+        center: "left-1/2 -translate-x-1/2",
+        end: "right-0",
+      },
+      left: {
+        start: "top-0",
+        center: "top-1/2 -translate-y-1/2",
+        end: "bottom-0",
+      },
+      right: {
+        start: "top-0",
+        center: "top-1/2 -translate-y-1/2",
+        end: "bottom-0",
+      },
+    };
+
+    const sideStyles = `${sideClasses[side]} ${alignClasses[side][align]}`;
 
     return (
       <div
@@ -172,7 +208,7 @@ const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
         className={cn(
           "bg-primary text-primary-foreground absolute z-50 overflow-hidden rounded-md px-3 py-1.5 text-xs",
           "animate-in fade-in-0 zoom-in-95",
-          sideStyles[side],
+          sideStyles,
           className
         )}
         {...props}
