@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 interface DropdownMenuContextValue {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DropdownMenuContext = React.createContext<
@@ -31,6 +33,7 @@ interface DropdownMenuProps {
 
 function DropdownMenu({ children, open, onOpenChange }: DropdownMenuProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : internalOpen;
@@ -38,9 +41,11 @@ function DropdownMenu({ children, open, onOpenChange }: DropdownMenuProps) {
 
   return (
     <DropdownMenuContext.Provider
-      value={{ open: isOpen, onOpenChange: setIsOpen }}
+      value={{ open: isOpen, onOpenChange: setIsOpen, containerRef }}
     >
-      <div className="relative inline-block text-left">{children}</div>
+      <div ref={containerRef} className="relative inline-block text-left">
+        {children}
+      </div>
     </DropdownMenuContext.Provider>
   );
 }
@@ -103,10 +108,17 @@ const DropdownMenuContent = React.forwardRef<
   DropdownMenuContentProps
 >(
   (
-    { className, align = "center", side = "bottom", sideOffset = 4, children, ...props },
+    {
+      className,
+      align = "center",
+      side = "bottom",
+      sideOffset = 4,
+      children,
+      ...props
+    },
     ref
   ) => {
-    const { open, onOpenChange } = useDropdownMenuContext();
+    const { open, onOpenChange, containerRef } = useDropdownMenuContext();
     const contentRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -114,16 +126,14 @@ const DropdownMenuContent = React.forwardRef<
         if (
           contentRef.current &&
           !contentRef.current.contains(e.target as Node) &&
-          !(e.target as Element).closest("[data-dropdown-trigger]")
+          !containerRef.current?.contains(e.target as Node)
         ) {
           onOpenChange(false);
         }
       };
 
       const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          onOpenChange(false);
-        }
+        if (e.key === "Escape") onOpenChange(false);
       };
 
       if (open) {
@@ -135,36 +145,55 @@ const DropdownMenuContent = React.forwardRef<
         document.removeEventListener("mousedown", handleClickOutside);
         document.removeEventListener("keydown", handleEscape);
       };
-    }, [open, onOpenChange]);
+    }, [open, onOpenChange, containerRef]);
 
     if (!open) return null;
 
-    const alignStyles = {
-      start: "left-0",
-      center: "left-1/2 -translate-x-1/2",
-      end: "right-0",
-    };
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return null;
 
-    const sideStyles = {
-      top: "bottom-full mb-1",
-      bottom: "top-full mt-1",
-    };
+    const top =
+      side === "bottom" ? rect.bottom + sideOffset : rect.top - sideOffset;
 
-    return (
+    const posStyle: React.CSSProperties =
+      align === "end"
+        ? {
+            position: "absolute",
+            top,
+            right: window.innerWidth - rect.right,
+            pointerEvents: "auto",
+          }
+        : align === "center"
+          ? {
+              position: "absolute",
+              top,
+              left: rect.left + rect.width / 2,
+              transform: "translateX(-50%)",
+              pointerEvents: "auto",
+            }
+          : {
+              position: "absolute",
+              top,
+              left: rect.left,
+              pointerEvents: "auto",
+            };
+
+    const portalRoot = document.getElementById("popover-root") ?? document.body;
+
+    return createPortal(
       <div
         ref={contentRef}
+        style={posStyle}
         className={cn(
-          "bg-popover text-popover-foreground z-50 min-w-32 overflow-hidden rounded-md border p-1 shadow-md",
+          "bg-popover text-popover-foreground min-w-32 overflow-hidden rounded-md border p-1 shadow-md",
           "animate-in fade-in-0 zoom-in-95",
-          "absolute",
-          sideStyles[side],
-          alignStyles[align],
           className
         )}
         {...props}
       >
         {children}
-      </div>
+      </div>,
+      portalRoot
     );
   }
 );
