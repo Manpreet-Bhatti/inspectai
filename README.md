@@ -8,13 +8,13 @@ Multi-modal AI-powered property inspection platform that transforms photos and v
 | ------- | ------------ |
 | Frontend | Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4, shadcn/ui |
 | State Management | TanStack Query 5, Zustand 5 |
-| Auth | NextAuth.js v5 |
-| ML Backend | Python 3.12+, FastAPI, Celery |
-| Database | PostgreSQL 16 with pgvector, Prisma 7 |
-| Cache/Queue | Redis 7 |
-| Storage | AWS S3 / Cloudflare R2 |
+| Auth / DB / Storage | Supabase (Postgres 16 + pgvector, Auth, Storage) |
+| ML Backend | Python 3.12+, FastAPI |
+| ML Inference | HuggingFace Inference Providers (serverless) |
+| Rate Limiting | Upstash Redis (optional) |
+| Local Dev Infra | PostgreSQL 16 (pgvector), Redis 7 (Docker) |
 | Testing | Vitest 4, Playwright 1.57, pytest |
-| Monorepo | Turborepo 2.6, pnpm 10 |
+| Monorepo | Turborepo 2.6, pnpm 11 |
 
 ## Project Structure
 
@@ -24,18 +24,19 @@ inspectai/
 │   ├── web/           # Next.js frontend
 │   └── ml-service/    # Python ML backend (FastAPI)
 ├── packages/
-│   ├── database/      # Prisma schema & client
 │   └── shared/        # Shared types & utilities
-└── docker-compose.yml # Development infrastructure
+├── supabase/          # Migrations, seed data
+└── docker-compose.yml # Local dev infrastructure (Postgres, Redis)
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 9+
+- Node.js 22+
+- pnpm 11+
 - Docker & Docker Compose
+- Supabase CLI
 - Python 3.12+ (for ML service development)
 
 ### Installation
@@ -63,6 +64,7 @@ inspectai/
 
    ```bash
    cp apps/web/.env.example apps/web/.env.local
+   cp apps/ml-service/.env.example apps/ml-service/.env
    ```
 
 5. **Push database schema**
@@ -100,11 +102,10 @@ pnpm test
 # Run E2E tests
 pnpm test:e2e
 
-# Database commands
-pnpm db:push      # Push schema to database
-pnpm db:generate  # Generate Prisma client
-pnpm db:studio    # Open Prisma Studio
-pnpm db:migrate   # Run migrations
+# Database commands (Supabase CLI)
+pnpm db:push      # Push migrations to database
+pnpm db:reset     # Reset local database
+pnpm db:types     # Generate TypeScript types from schema
 
 # Clean all build artifacts
 pnpm clean
@@ -131,25 +132,29 @@ uvicorn app.main:app --reload
 ### Web App (`apps/web/.env.local`)
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/inspectai"
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
-
-AWS_ACCESS_KEY_ID="xxx"
-AWS_SECRET_ACCESS_KEY="xxx"
-AWS_REGION="us-east-1"
-AWS_S3_BUCKET="inspectai-uploads"
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="xxx"
 
 ML_SERVICE_URL="http://localhost:8000"
-REDIS_URL="redis://localhost:6379"
+ML_SERVICE_API_KEY=""
 ```
 
 ### ML Service (`apps/ml-service/.env`)
 
 ```env
-HUGGINGFACE_TOKEN="hf_xxx"
-REDIS_URL="redis://localhost:6379"
-MODEL_CACHE_DIR="/app/models"
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="eyJ..."
+
+HUGGINGFACE_TOKEN="hf_..."
+
+# Optional — omit both to disable rate limiting
+UPSTASH_REDIS_REST_URL="https://your-db.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your-token"
+
+API_KEY="change-me-in-production"
+DEBUG=false
+LOG_LEVEL="INFO"
+CORS_ORIGINS="http://localhost:3000,http://localhost:3001"
 ```
 
 ## License
